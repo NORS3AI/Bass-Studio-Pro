@@ -2,6 +2,19 @@
 
 ---
 
+## v0.6.0 — 2026-04-04
+
+### Phase 5 Complete — Equalizer
+
+- **Frequency response curve (5.7)**: Live canvas rendering showing the combined EQ curve with smooth interpolation, band dots, and grid lines. Updates instantly as you drag sliders or switch presets
+- **Save custom presets (5.8)**: "Save Custom" button prompts for a name and saves the current 10-band gain array as a reusable preset
+- **Delete & rename custom presets (5.9)**: Custom presets section appears when you have saved presets, with Rename and Delete buttons for each
+- **EQ persistence (5.10)**: Active preset, gain values, pre-amp, bypass state, and all custom presets are saved to IndexedDB and restored on app launch
+- **EQ bypass toggle (5.12)**: "Bypass" button instantly flattens all EQ bands and pre-amp for quick A/B comparison. Curve greys out when bypassed. State persists across sessions
+- Pre-amp slider now shows its current dB value
+
+---
+
 ## v0.5.2 — 2026-04-04
 
 ### Bug Fixes

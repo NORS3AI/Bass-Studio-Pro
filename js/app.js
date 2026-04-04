@@ -528,20 +528,32 @@
   // ============================================
 
   const eqPresetsContainer = $('#eq-presets');
-  Equalizer.getPresetNames().forEach((name) => {
-    const btn = document.createElement('button');
-    btn.textContent = name;
-    btn.addEventListener('click', () => {
-      Equalizer.applyPreset(name);
-      eqPresetsContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderEQSliders();
-    });
-    if (name === 'Flat') btn.classList.add('active');
-    eqPresetsContainer.appendChild(btn);
-  });
-
   const eqSlidersContainer = $('#eq-sliders');
+  const eqCurveCanvas = $('#eq-curve');
+  const btnEqBypass = $('#btn-eq-bypass');
+  const eqPreamp = $('#eq-preamp');
+  const eqPreampValue = $('#eq-preamp-value');
+  const eqCustomSection = $('#eq-custom-presets');
+  const eqCustomList = $('#eq-custom-list');
+
+  function renderEQPresetButtons() {
+    eqPresetsContainer.innerHTML = '';
+    Equalizer.getPresetNames().forEach((name) => {
+      const btn = document.createElement('button');
+      btn.textContent = name;
+      btn.addEventListener('click', () => {
+        Equalizer.applyPreset(name);
+        eqPresetsContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderEQSliders();
+        Equalizer.drawCurve();
+      });
+      if (name === Equalizer.activePreset) btn.classList.add('active');
+      eqPresetsContainer.appendChild(btn);
+    });
+  }
+  renderEQPresetButtons();
+
   function renderEQSliders() {
     eqSlidersContainer.innerHTML = '';
     Equalizer.BANDS.forEach((freq, i) => {
@@ -556,16 +568,91 @@
       div.querySelector('input').addEventListener('input', (e) => {
         Equalizer.setBand(i, parseFloat(e.target.value));
         div.querySelector('.eq-value').textContent = `${e.target.value > 0 ? '+' : ''}${e.target.value}dB`;
+        Equalizer.drawCurve();
       });
       eqSlidersContainer.appendChild(div);
     });
   }
   renderEQSliders();
 
-  const eqPreamp = $('#eq-preamp');
+  // Frequency response curve (5.7)
+  Equalizer.initCurve(eqCurveCanvas);
+
+  // Pre-amp
   if (eqPreamp) {
-    eqPreamp.addEventListener('input', () => Equalizer.setPreamp(parseFloat(eqPreamp.value)));
+    eqPreamp.addEventListener('input', () => {
+      const val = parseFloat(eqPreamp.value);
+      Equalizer.setPreamp(val);
+      eqPreampValue.textContent = `${val > 0 ? '+' : ''}${val}dB`;
+      Equalizer.drawCurve();
+    });
   }
+
+  // Bypass toggle (5.12)
+  btnEqBypass.addEventListener('click', () => {
+    Equalizer.toggleBypass();
+    btnEqBypass.classList.toggle('active', Equalizer.bypassed);
+    btnEqBypass.textContent = Equalizer.bypassed ? 'Bypassed' : 'Bypass';
+    Equalizer.drawCurve();
+  });
+
+  // Save custom preset (5.8)
+  $('#btn-save-preset').addEventListener('click', () => {
+    const name = prompt('Preset name:');
+    if (name && name.trim()) {
+      Equalizer.saveCustomPreset(name.trim());
+      renderEQPresetButtons();
+      renderCustomPresetList();
+    }
+  });
+
+  // Custom preset management (5.9)
+  function renderCustomPresetList() {
+    const names = Equalizer.getCustomPresetNames();
+    if (names.length === 0) {
+      eqCustomSection.classList.add('hidden');
+      return;
+    }
+    eqCustomSection.classList.remove('hidden');
+    eqCustomList.innerHTML = '';
+    names.forEach(name => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="custom-preset-name">${escapeHTML(name)}</span>
+        <button class="btn-small" data-action="rename">Rename</button>
+        <button class="btn-small btn-danger" data-action="delete">Del</button>
+      `;
+      li.querySelector('[data-action="rename"]').addEventListener('click', () => {
+        const newName = prompt('New name:', name);
+        if (newName && newName.trim() && newName.trim() !== name) {
+          Equalizer.renameCustomPreset(name, newName.trim());
+          renderEQPresetButtons();
+          renderCustomPresetList();
+        }
+      });
+      li.querySelector('[data-action="delete"]').addEventListener('click', () => {
+        if (confirm(`Delete preset "${name}"?`)) {
+          Equalizer.deleteCustomPreset(name);
+          renderEQPresetButtons();
+          renderCustomPresetList();
+        }
+      });
+      eqCustomList.appendChild(li);
+    });
+  }
+  renderCustomPresetList();
+
+  // Restore EQ state (5.10)
+  Equalizer.restoreState().then(() => {
+    renderEQPresetButtons();
+    renderEQSliders();
+    renderCustomPresetList();
+    eqPreamp.value = Equalizer.preamp;
+    eqPreampValue.textContent = `${Equalizer.preamp > 0 ? '+' : ''}${Equalizer.preamp}dB`;
+    btnEqBypass.classList.toggle('active', Equalizer.bypassed);
+    btnEqBypass.textContent = Equalizer.bypassed ? 'Bypassed' : 'Bypass';
+    Equalizer.drawCurve();
+  });
 
   // ============================================
   // SEARCH, FILTER & SORT (3.8–3.11)

@@ -128,7 +128,13 @@
       <div class="eq-actions">
         <label for="eq-preamp">Pre-amp</label>
         <input type="range" id="eq-preamp" min="-12" max="12" value="0" step="0.5">
+        <span id="eq-preamp-value">0dB</span>
+        <button id="btn-eq-bypass" class="btn-small" aria-label="Bypass EQ">Bypass</button>
         <button id="btn-save-preset" class="btn-small">Save Custom</button>
+      </div>
+      <div id="eq-custom-presets" class="eq-custom-presets hidden">
+        <h3>Custom Presets</h3>
+        <ul id="eq-custom-list"></ul>
       </div>
     </section>
 

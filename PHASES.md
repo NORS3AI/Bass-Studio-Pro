@@ -84,18 +84,18 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 5 — Equalizer (v0.6.0)
 > **Goal**: Full 10-band EQ with all 14 presets and custom curves.
 
-- [ ] **5.1** Create 10 BiquadFilterNodes (peaking type) and insert into the audio graph
-- [ ] **5.2** Render 10 vertical sliders (-12 to +12 dB), one per band
-- [ ] **5.3** Real-time slider interaction — moving a slider instantly changes the filter gain
-- [ ] **5.4** Render the 14 preset buttons (Flat, Bass Boost, Treble Boost, Dance, Rock, Pop, Jazz, Classical, Hip-Hop, R&B/Soul, Electronic, Acoustic, Vocal, Late Night)
-- [ ] **5.5** Clicking a preset applies its gain values to all 10 sliders
-- [ ] **5.6** Pre-amp / master gain slider to prevent clipping when boosting
-- [ ] **5.7** Draw the frequency response curve on the `<canvas>` in real time
-- [ ] **5.8** Save custom preset — name prompt, stores gain array
-- [ ] **5.9** Delete and rename custom presets
-- [ ] **5.10** Persist active preset and custom presets in IndexedDB
-- [ ] **5.11** `E` keyboard shortcut toggles the EQ panel
-- [ ] **5.12** EQ bypass toggle — quickly A/B compare with and without EQ
+- [x] **5.1** Create 10 BiquadFilterNodes (peaking type) and insert into the audio graph
+- [x] **5.2** Render 10 vertical sliders (-12 to +12 dB), one per band
+- [x] **5.3** Real-time slider interaction — moving a slider instantly changes the filter gain
+- [x] **5.4** Render the 14 preset buttons (Flat, Bass Boost, Treble Boost, Dance, Rock, Pop, Jazz, Classical, Hip-Hop, R&B/Soul, Electronic, Acoustic, Vocal, Late Night)
+- [x] **5.5** Clicking a preset applies its gain values to all 10 sliders
+- [x] **5.6** Pre-amp / master gain slider to prevent clipping when boosting
+- [x] **5.7** Draw the frequency response curve on the `<canvas>` in real time
+- [x] **5.8** Save custom preset — name prompt, stores gain array
+- [x] **5.9** Delete and rename custom presets
+- [x] **5.10** Persist active preset and custom presets in IndexedDB
+- [x] **5.11** `E` keyboard shortcut toggles the EQ panel
+- [x] **5.12** EQ bypass toggle — quickly A/B compare with and without EQ
 
 **Definition of done**: All 14 presets sound correct. Custom presets save and load. Frequency curve draws live. EQ persists across sessions.
 
