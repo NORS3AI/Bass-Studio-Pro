@@ -2,6 +2,15 @@
 
 ---
 
+## v0.1.1 — 2026-04-04
+
+### Development Roadmap
+- Added PHASES.md with 14-phase development plan (151 total tasks)
+- Phases cover: Core Playback, Playlists, Metadata, Search, EQ, Visualizers, Advanced Playback, Settings, Mini Player, PWA, Accessibility, Lyrics, Audio Effects, and Final Polish
+- Each phase has a version target, task checklist, and definition of done
+
+---
+
 ## v0.1.0 — 2026-04-04
 
 ### Initial Project Skeleton

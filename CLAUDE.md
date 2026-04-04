@@ -4,6 +4,10 @@
 
 **After EVERY update — no matter how small — add an entry to `PATCH_NOTES.md`.** This is non-negotiable. Every commit that changes app behavior, UI, features, or fixes a bug must have a corresponding patch note entry with version number, date, and bullet list of changes. Bump the patch version for fixes, minor version for features.
 
+## Development Phases
+
+See `PHASES.md` for the full 14-phase roadmap (151 tasks). Each phase has a version target and a checklist. Mark tasks complete in PHASES.md as you finish them. Follow the phases in order — each builds on the previous.
+
 ## Project Overview
 
 Bass Studio Pro is an offline-first, browser-based music player. It runs entirely client-side with no server dependencies. Users load music from their local filesystem (desktop or iOS Files app) and get a full-featured playback experience with equalizer presets, beat-synced visualizers, and comprehensive playlist management.
