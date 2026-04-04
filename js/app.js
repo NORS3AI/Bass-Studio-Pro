@@ -121,8 +121,9 @@
   Playlist.on('playlistschanged', () => renderPlaylistSelector());
   Playlist.on('activechanged', (pl) => {
     renderPlaylistSelector();
+    resetFilters();
     populateFilters();
-    renderTracks(pl ? pl.tracks : []);
+    refreshTrackView();
   });
   Playlist.on('trackschanged', (pl) => {
     renderPlaylistSelector();
@@ -619,6 +620,13 @@
       if (val === current) o.selected = true;
       select.appendChild(o);
     });
+  }
+
+  function resetFilters() {
+    filterGenre.value = '';
+    filterArtist.value = '';
+    filterAlbum.value = '';
+    sortBy.value = '';
   }
 
   searchInput.addEventListener('input', refreshTrackView);

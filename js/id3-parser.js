@@ -55,11 +55,15 @@ const ID3Parser = (() => {
     };
 
     try {
-      // Read enough of the file for ID3v2 header + tags (first 512KB should cover most)
-      const headerBuf = await readSlice(file, 0, Math.min(file.size, 512 * 1024));
-      const headerView = new DataView(headerBuf);
+      // Read the 10-byte ID3v2 header first to determine actual tag size
+      const peekBuf = await readSlice(file, 0, Math.min(file.size, 10));
+      const peekView = new DataView(peekBuf);
 
-      if (isID3v2(headerView)) {
+      if (isID3v2(peekView)) {
+        const tagSize = syncsafe(peekView, 6);
+        const totalSize = 10 + tagSize; // header + tag body
+        const headerBuf = await readSlice(file, 0, Math.min(file.size, totalSize));
+        const headerView = new DataView(headerBuf);
         parseID3v2(headerBuf, headerView, result);
       }
 
@@ -114,10 +118,13 @@ const ID3Parser = (() => {
 
     // Skip extended header if present
     if (hasExtHeader) {
-      const extSize = version === 4
-        ? syncsafe(view, offset)
-        : view.getUint32(offset);
-      offset += extSize;
+      if (version === 4) {
+        // v2.4: size is syncsafe and includes itself (the 4 size bytes)
+        offset += syncsafe(view, offset);
+      } else {
+        // v2.3: size is big-endian uint32 and does NOT include the 4 size bytes
+        offset += 4 + view.getUint32(offset);
+      }
     }
 
     const end = Math.min(10 + tagSize, buf.byteLength);

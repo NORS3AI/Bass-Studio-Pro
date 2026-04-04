@@ -21,6 +21,14 @@ const Playlist = (() => {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
+  /**
+   * Revoke blob URLs held by a track to prevent memory leaks.
+   */
+  function revokeTrackURLs(track) {
+    if (track.url) { try { URL.revokeObjectURL(track.url); } catch (_) {} track.url = null; }
+    if (track.artUrl) { try { URL.revokeObjectURL(track.artUrl); } catch (_) {} track.artUrl = null; }
+  }
+
   // ============================================
   // PLAYLIST CRUD (2.1, 2.2, 2.3, 2.4, 2.6)
   // ============================================
@@ -51,6 +59,8 @@ const Playlist = (() => {
   }
 
   function deletePlaylist(id) {
+    const toDelete = playlists.find(p => p.id === id);
+    if (toDelete) toDelete.tracks.forEach(revokeTrackURLs);
     playlists = playlists.filter(p => p.id !== id);
     // Remove from IndexedDB immediately (scheduleSave only saves existing playlists)
     try { Storage.deletePlaylist(id); } catch (_) {}
@@ -80,6 +90,7 @@ const Playlist = (() => {
   function clearPlaylist(id) {
     const pl = playlists.find(p => p.id === (id || activePlaylistId));
     if (!pl) return;
+    pl.tracks.forEach(revokeTrackURLs);
     pl.tracks = [];
     if (pl.id === activePlaylistId) {
       buildQueue();
@@ -126,6 +137,8 @@ const Playlist = (() => {
   function removeTrack(trackId) {
     const pl = getActive();
     if (!pl) return;
+    const track = pl.tracks.find(t => t.id === trackId);
+    if (track) revokeTrackURLs(track);
     pl.tracks = pl.tracks.filter(t => t.id !== trackId);
     buildQueue();
     emit('trackschanged', pl);

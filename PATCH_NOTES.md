@@ -2,6 +2,18 @@
 
 ---
 
+## v0.4.1 — 2026-04-04
+
+### Phase 3 Audit — Bug Fixes
+
+- **HIGH**: ID3 parser now reads up to actual tag size instead of hardcoded 512KB — fixes truncated album art for large embedded images
+- **HIGH**: Fixed ID3v2.3 extended header offset (was off by 4 bytes due to missing size field accounting)
+- **HIGH**: Switching playlists now respects active filters and sort (was bypassing `refreshTrackView`)
+- **MEDIUM**: Blob URLs for audio and album art are now revoked when tracks are removed or playlists cleared/deleted — prevents memory leaks
+- **MEDIUM**: Filter dropdowns now reset when switching playlists — prevents stale filters showing no results
+
+---
+
 ## v0.4.0 — 2026-04-04
 
 ### Phase 3 Complete — Metadata & Album Art
