@@ -625,6 +625,14 @@
     try { Storage.saveSetting('volume', v); } catch (_) {}
   });
 
+  // Sync slider to programmatic volume changes (sleep timer fade, etc.)
+  Player.on('volumechange', (v) => {
+    const sliderVal = Number(volumeSlider.value) / 100;
+    if (Math.abs(sliderVal - v) > 0.01) {
+      volumeSlider.value = Math.round(v * 100);
+    }
+  });
+
   Player.on('mutechange', (muted) => {
     btnMute.innerHTML = muted ? '&#x1f507;' : '&#x1f50a;';
   });
@@ -1325,16 +1333,19 @@
     clearSleepTimer();
     sleepEndTime = Date.now() + minutes * 60000;
     sleepOriginalVolume = Player.getVolume();
-    sleepTimerId = setTimeout(() => {
-      Player.pause();
-      // Restore original volume so next play session isn't silent
-      if (sleepOriginalVolume != null) Player.setVolume(sleepOriginalVolume);
-      sleepOriginalVolume = null;
-      clearSleepTimer();
-    }, minutes * 60000);
+    sleepTimerId = setTimeout(fireSleepTimer, minutes * 60000);
     sleepCountdown.classList.remove('hidden');
     updateSleepDisplay();
     sleepDisplayId = setInterval(updateSleepDisplay, 250);
+  }
+
+  function fireSleepTimer() {
+    Player.pause();
+    if (sleepOriginalVolume != null) {
+      Player.setVolume(sleepOriginalVolume);
+      sleepOriginalVolume = null;
+    }
+    clearSleepTimer();
   }
 
   function clearSleepTimer() {
@@ -1351,7 +1362,12 @@
 
   function updateSleepDisplay() {
     const remaining = Math.max(0, sleepEndTime - Date.now());
-    if (remaining <= 0) { clearSleepTimer(); return; }
+    if (remaining <= 0) {
+      // Display interval caught the end slightly before the setTimeout fired.
+      // Fire the timer ourselves (idempotent) to ensure pause+restore happens.
+      fireSleepTimer();
+      return;
+    }
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
     sleepRemaining.textContent = `${mins}m ${secs.toString().padStart(2, '0')}s`;
@@ -1441,13 +1457,10 @@
   $('#btn-reset-settings').addEventListener('click', async () => {
     if (!confirm('Reset all settings to defaults? Your playlists and stored audio will be kept.')) return;
     try {
-      const keys = ['theme', 'accentColor', 'crossfade', 'defaultSpeed', 'pitch',
-        'gapless', 'normalize', 'rememberPosition', 'volume', 'eqPreset',
-        'eqBands', 'eqPreamp', 'eqBypassed', 'vizMode', 'vizTheme',
-        'vizCustomColor1', 'vizCustomColor2'];
-      for (const key of keys) {
-        try { await Storage.saveSetting(key, null); } catch (_) {}
-      }
+      // Wipe the entire settings store (theme, accent, crossfade, speed, pitch, etc.)
+      await Storage.clearSettings();
+      // Also reset EQ state (lives in the 'state' store, not 'settings')
+      try { await Storage.deleteState('eq'); } catch (_) {}
       alert('Settings reset. Reloading…');
       window.location.reload();
     } catch (err) {

@@ -84,6 +84,8 @@ const Storage = (() => {
     deletePlaylist: (id) => remove('playlists', id),
     saveState: (key, value) => put('state', { key, value }),
     getState: (key) => get('state', key).then(r => r ? r.value : null),
+    deleteState: (key) => remove('state', key),
+    clearSettings: () => clearStore('settings'),
 
     // Audio file storage — persists raw audio and art blobs by track ID
     saveAudioFile: (id, audioBlob, artBlob) => put('audiofiles', { id, audioBlob, artBlob }),

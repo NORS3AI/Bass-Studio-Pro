@@ -20,6 +20,11 @@
 - New "Reset Settings" button in the Data section wipes all settings (theme, accent, EQ preset, viz mode, etc.) but **keeps your playlists and stored audio**
 - Asks for confirmation; reloads the page afterward to apply defaults
 
+**Audit fixes (Phase 8 × prior phases):**
+- **CRITICAL** — Sleep timer race fixed: the 250ms countdown interval could fire at remaining=0 *before* the setTimeout, which would cancel the timeout without ever pausing playback. `fireSleepTimer()` is now idempotent and runs from whichever fires first.
+- **HIGH** — Volume slider now syncs with programmatic volume changes (sleep fade, etc.) via a new `volumechange` listener — you can *see* the fade as well as hear it
+- **MEDIUM** — Reset Settings now actually wipes the settings store via a new `Storage.clearSettings()` helper (was setting keys to `null`, some non-existent). Also resets EQ state via `deleteState('eq')` since EQ lives in the state store, not settings.
+
 ---
 
 ## v0.8.0 — 2026-04-04
