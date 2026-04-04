@@ -26,21 +26,21 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 2 — Playlist Management (v0.3.0)
 > **Goal**: Full playlist CRUD, persistence, and queue control.
 
-- [ ] **2.1** Create named playlists — "New Playlist" button opens a name prompt
-- [ ] **2.2** Playlist selector — dropdown or sidebar to switch between playlists
-- [ ] **2.3** Rename and delete playlists
-- [ ] **2.4** Duplicate a playlist
-- [ ] **2.5** Remove individual tracks from a playlist (swipe or delete button)
-- [ ] **2.6** Clear entire playlist
-- [ ] **2.7** Drag-and-drop reordering within the track list
-- [ ] **2.8** "Play Next" context action — insert track after the currently playing one
-- [ ] **2.9** "Add to Queue" context action — append track to end of queue
-- [ ] **2.10** Shuffle mode (Fisher-Yates) with un-shuffle to restore original order
-- [ ] **2.11** Repeat modes: Off → Repeat All → Repeat One (cycle on button click)
-- [ ] **2.12** Persist all playlists in IndexedDB — survive reload, tab close, browser restart
-- [ ] **2.13** Restore last active playlist and track position on app launch
-- [ ] **2.14** Export playlist as JSON file (download)
-- [ ] **2.15** Import playlist from JSON file
+- [x] **2.1** Create named playlists — "New Playlist" button opens a name prompt
+- [x] **2.2** Playlist selector — dropdown or sidebar to switch between playlists
+- [x] **2.3** Rename and delete playlists
+- [x] **2.4** Duplicate a playlist
+- [x] **2.5** Remove individual tracks from a playlist (swipe or delete button)
+- [x] **2.6** Clear entire playlist
+- [x] **2.7** Drag-and-drop reordering within the track list
+- [x] **2.8** "Play Next" context action — insert track after the currently playing one
+- [x] **2.9** "Add to Queue" context action — append track to end of queue
+- [x] **2.10** Shuffle mode (Fisher-Yates) with un-shuffle to restore original order
+- [x] **2.11** Repeat modes: Off → Repeat All → Repeat One (cycle on button click)
+- [x] **2.12** Persist all playlists in IndexedDB — survive reload, tab close, browser restart
+- [x] **2.13** Restore last active playlist and track position on app launch
+- [x] **2.14** Export playlist as JSON file (download)
+- [x] **2.15** Import playlist from JSON file
 
 **Definition of done**: You can create multiple playlists, reorder tracks, shuffle, repeat, close the browser, reopen, and everything is exactly as you left it.
 

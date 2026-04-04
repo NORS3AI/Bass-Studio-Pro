@@ -2,6 +2,41 @@
 
 ---
 
+## v0.3.0 — 2026-04-04
+
+### Phase 2 Complete — Playlist Management
+
+**Playlist CRUD:**
+- Create named playlists via "New Playlist" button with name prompt
+- Playlist selector dropdown to switch between playlists (shows track count)
+- Rename playlists via prompt dialog
+- Duplicate playlists (creates copy with new track IDs)
+- Delete playlists with confirmation dialog
+- Clear all tracks from a playlist with confirmation
+
+**Track Management:**
+- Remove individual tracks via ✕ button (visible on hover)
+- Drag-and-drop reordering within the track list
+- Right-click context menu with "Play Next", "Add to Queue", and "Remove" actions
+
+**Queue & Playback:**
+- Shuffle mode uses Fisher-Yates algorithm; un-shuffle restores original order
+- Repeat modes cycle: Off → Repeat All → Repeat One
+- "Play Next" inserts track immediately after the current one in queue
+- "Add to Queue" appends track to end of queue
+
+**Persistence:**
+- All playlists persist in IndexedDB — survive reload, tab close, browser restart
+- Debounced saves (300ms) prevent rapid writes during bulk operations
+- Last active playlist restored on app launch
+- Favorites persist across sessions
+
+**Import / Export:**
+- Export current playlist as downloadable JSON file
+- Import playlist from JSON file (creates new playlist with metadata)
+
+---
+
 ## v0.2.1 — 2026-04-04
 
 ### Phase 1 Audit — 42 Issues Found, All Critical/High/Medium Fixed

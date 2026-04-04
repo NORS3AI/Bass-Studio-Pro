@@ -191,16 +191,34 @@ html, body {
 /* ---------- Playlist ---------- */
 .playlist-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
+.playlist-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.playlist-title-row h2 { margin-bottom: 0; }
+
+#playlist-selector {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 3px 8px;
+  font-size: 12px;
+  max-width: 180px;
+}
+
 .playlist-controls {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 #search-input {
@@ -227,11 +245,18 @@ html, body {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background var(--transition);
+  user-select: none;
 }
 #track-list li:hover { background: var(--bg-hover); }
 #track-list li.active { background: var(--accent); color: #fff; }
 #track-list li.active .track-duration,
 #track-list li.active .track-number { color: rgba(255,255,255,0.7); }
+#track-list li.drag-over {
+  border-top: 2px solid var(--accent);
+}
+#track-list li.dragging {
+  opacity: 0.4;
+}
 
 .empty-state {
   text-align: center;
@@ -242,10 +267,61 @@ html, body {
 }
 .empty-state:hover { background: none; }
 
-.track-number { width: 24px; text-align: right; color: var(--text-secondary); font-size: 12px; }
+.track-number {
+  width: 24px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: grab;
+}
+.track-number:active { cursor: grabbing; }
 .track-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .track-duration { font-size: 12px; color: var(--text-secondary); }
 .track-fav { cursor: pointer; font-size: 14px; }
+.track-remove {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 2px 4px;
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition);
+}
+#track-list li:hover .track-remove { opacity: 1; }
+.track-remove:hover { color: var(--danger); }
+
+/* ---------- Context Menu ---------- */
+.context-menu {
+  position: fixed;
+  z-index: 500;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 0;
+  min-width: 160px;
+  box-shadow: 0 4px 16px var(--shadow);
+}
+.context-menu.hidden { display: none; }
+.context-menu hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+.context-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.context-item:hover {
+  background: var(--bg-hover);
+}
 
 /* ---------- Equalizer ---------- */
 .eq-presets {

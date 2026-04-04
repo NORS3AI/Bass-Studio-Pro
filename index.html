@@ -52,10 +52,17 @@
     <!-- PLAYLIST -->
     <section id="playlist-section" class="panel">
       <div class="playlist-header">
-        <h2>Playlist</h2>
+        <div class="playlist-title-row">
+          <h2>Playlist</h2>
+          <select id="playlist-selector" aria-label="Select playlist"></select>
+        </div>
         <div class="playlist-controls">
           <input type="search" id="search-input" placeholder="Search tracks..." aria-label="Search tracks">
           <button id="btn-new-playlist" class="btn-small" aria-label="New Playlist">+ New</button>
+          <button id="btn-rename-playlist" class="btn-small" aria-label="Rename Playlist">Rename</button>
+          <button id="btn-dup-playlist" class="btn-small" aria-label="Duplicate Playlist">Dup</button>
+          <button id="btn-del-playlist" class="btn-small btn-danger" aria-label="Delete Playlist">Del</button>
+          <button id="btn-clear-playlist" class="btn-small" aria-label="Clear Playlist">Clear</button>
           <button id="btn-export-playlist" class="btn-small" aria-label="Export Playlist">Export</button>
           <button id="btn-import-playlist" class="btn-small" aria-label="Import Playlist">Import</button>
         </div>
@@ -63,7 +70,16 @@
       <ul id="track-list" role="list" aria-label="Track list">
         <!-- Tracks rendered by js/playlist.js -->
       </ul>
+      <input type="file" id="import-playlist-input" accept=".json" hidden>
     </section>
+
+    <!-- TRACK CONTEXT MENU (hidden, positioned via JS) -->
+    <div id="track-context-menu" class="context-menu hidden" role="menu">
+      <button class="context-item" data-action="play-next">Play Next</button>
+      <button class="context-item" data-action="add-to-queue">Add to Queue</button>
+      <hr>
+      <button class="context-item" data-action="remove">Remove from Playlist</button>
+    </div>
 
     <!-- EQUALIZER -->
     <section id="eq-section" class="panel hidden">
