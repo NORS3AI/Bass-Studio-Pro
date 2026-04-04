@@ -433,7 +433,13 @@
     renderCurrentTracks();
   });
 
-  btnPlay.addEventListener('click', () => Player.togglePlay());
+  btnPlay.addEventListener('click', () => {
+    if (!Player.getState().currentTrack) {
+      Playlist.playFirst();
+    } else {
+      Player.togglePlay();
+    }
+  });
   btnPrev.addEventListener('click', () => Playlist.prev());
   btnNext.addEventListener('click', () => Playlist.next());
   btnShuffle.addEventListener('click', () => Playlist.toggleShuffle());
@@ -446,6 +452,11 @@
       Playlist.toggleFavorite(id);
       btnFavorite.innerHTML = Playlist.isFavorite(id) ? '&#x2605;' : '&#x2606;';
     }
+  });
+
+  Playlist.on('trackerror', ({ message }) => {
+    trackTitle.textContent = message;
+    trackArtist.textContent = 'Open your music files again to reconnect';
   });
 
   Player.on('statechange', (state) => {
@@ -831,7 +842,13 @@
 
     switch (e.key) {
       case ' ':
-        e.preventDefault(); Player.togglePlay(); break;
+        e.preventDefault();
+        if (!Player.getState().currentTrack) {
+          Playlist.playFirst();
+        } else {
+          Player.togglePlay();
+        }
+        break;
       case 'ArrowLeft':
         e.preventDefault(); e.shiftKey ? Playlist.prev() : Player.seek(Player.getCurrentTime() - 5); break;
       case 'ArrowRight':

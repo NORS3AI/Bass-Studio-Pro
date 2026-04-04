@@ -98,6 +98,13 @@ html, body {
 .icon-btn.active {
   color: var(--accent);
 }
+/* Shuffle/Repeat: more visible active state */
+#btn-shuffle.active,
+#btn-repeat.active {
+  color: #fff;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+}
 .icon-btn-lg {
   font-size: 28px;
   padding: 8px 12px;

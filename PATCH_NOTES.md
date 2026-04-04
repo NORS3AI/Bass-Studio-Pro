@@ -2,6 +2,18 @@
 
 ---
 
+## v0.6.2 — 2026-04-04
+
+### Bug Fixes
+
+- **Playlist survives refresh**: Re-adding files after a page refresh now re-links them to existing tracks by matching title and artist, instead of creating duplicates. Your playlist order, favorites, and play counts are preserved
+- **Auto-advance fixed**: Next track plays correctly when a song ends. Unplayable tracks (no audio loaded) are automatically skipped
+- **Shuffle/Repeat visibility**: Active shuffle and repeat buttons now show a solid accent-colored background so it's immediately obvious when they're on or off
+- **Spacebar starts playback**: Pressing spacebar (or tapping Play) when no track is loaded now starts playing the first available track in the playlist
+- **Unplayable track feedback**: Clicking a restored track that hasn't been re-linked shows "No audio loaded — re-add files to play" instead of silently failing
+
+---
+
 ## v0.6.1 — 2026-04-04
 
 ### Bug Fixes

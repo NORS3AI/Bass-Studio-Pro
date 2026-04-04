@@ -128,8 +128,23 @@ const Playlist = (() => {
 
       for (const file of files) {
         const meta = await FileLoader.extractMetadata(file);
-        const track = { id: uid(), ...meta };
-        pl.tracks.push(track);
+
+        // Try to re-link a restored track that has no URL (after page refresh)
+        const existing = pl.tracks.find(t =>
+          !t.url && t.title === meta.title && t.artist === meta.artist
+        );
+        if (existing) {
+          existing.file = meta.file;
+          existing.url = meta.url;
+          existing.artUrl = meta.artUrl;
+          existing.duration = meta.duration || existing.duration;
+          if (meta.genre) existing.genre = meta.genre;
+          if (meta.year) existing.year = meta.year;
+          if (meta.trackNumber) existing.trackNumber = meta.trackNumber;
+        } else {
+          const track = { id: uid(), ...meta };
+          pl.tracks.push(track);
+        }
       }
       buildQueue();
       emit('trackschanged', pl);
@@ -286,10 +301,15 @@ const Playlist = (() => {
     const pl = getActive();
     if (!pl || trackIndex < 0 || trackIndex >= pl.tracks.length) return;
 
+    const track = pl.tracks[trackIndex];
+    if (!track.url) {
+      emit('trackerror', { track, message: 'No audio loaded — re-add files to play' });
+      return;
+    }
+
     const queuePos = queue.indexOf(trackIndex);
     if (queuePos >= 0) currentQueuePos = queuePos;
 
-    const track = pl.tracks[trackIndex];
     currentTrackId = track.id;
     recordPlay(track.id, pl.id);
     emit('playtrack', { track, index: trackIndex });
@@ -300,6 +320,21 @@ const Playlist = (() => {
     if (!pl) return;
     const index = pl.tracks.findIndex(t => t.id === trackId);
     if (index >= 0) playIndex(index);
+  }
+
+  /**
+   * Play the first playable track in the queue (for spacebar with nothing playing).
+   */
+  function playFirst() {
+    const pl = getActive();
+    if (!pl || queue.length === 0) return;
+    for (let i = 0; i < queue.length; i++) {
+      const track = pl.tracks[queue[i]];
+      if (track && track.url) {
+        playIndex(queue[i]);
+        return;
+      }
+    }
   }
 
   function next() {
@@ -313,18 +348,30 @@ const Playlist = (() => {
       return;
     }
 
-    if (currentQueuePos < queue.length - 1) {
-      currentQueuePos++;
-    } else if (repeatMode === 'all') {
-      currentQueuePos = 0;
-    } else {
-      return;
-    }
+    // Try to find the next playable track (has a URL)
+    const startPos = currentQueuePos;
+    let attempts = 0;
+    while (attempts < queue.length) {
+      if (currentQueuePos < queue.length - 1) {
+        currentQueuePos++;
+      } else if (repeatMode === 'all') {
+        currentQueuePos = 0;
+      } else {
+        return;
+      }
 
-    const trackIndex = queue[currentQueuePos];
-    const track = pl.tracks[trackIndex];
-    currentTrackId = track.id;
-    emit('playtrack', { track, index: trackIndex });
+      const trackIndex = queue[currentQueuePos];
+      const track = pl.tracks[trackIndex];
+      if (track && track.url) {
+        currentTrackId = track.id;
+        recordPlay(track.id, pl.id);
+        emit('playtrack', { track, index: trackIndex });
+        return;
+      }
+      attempts++;
+      // Prevent infinite loop if we've wrapped around
+      if (currentQueuePos === startPos) return;
+    }
   }
 
   function prev() {
@@ -672,7 +719,7 @@ const Playlist = (() => {
     createPlaylist, renamePlaylist, deletePlaylist, duplicatePlaylist, clearPlaylist,
     addFiles, removeTrack, moveTrack,
     toggleShuffle, cycleRepeat, playNext, addToQueue,
-    playIndex, playTrackById, next, prev,
+    playIndex, playTrackById, playFirst, next, prev,
     search, filterBy, getUniqueValues, sortTracks, getCurrentTrackId,
     toggleFavorite, isFavorite,
     getFavorites, getRecentlyPlayed, getMostPlayed, getPlayCount, findTrackById,
