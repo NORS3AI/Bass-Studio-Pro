@@ -981,6 +981,7 @@
   // THEME
   // ============================================
 
+  // --- Theme ---
   try {
     const themeSetting = await Storage.getSetting('theme');
     if (themeSetting) { applyTheme(themeSetting); $('#setting-theme').value = themeSetting; }
@@ -1002,6 +1003,222 @@
 
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
     try { Storage.getSetting('theme').then(t => { if (t === 'system') applyTheme('system'); }); } catch (_) {}
+  });
+
+  // --- Accent Color ---
+  const settingAccent = $('#setting-accent');
+  try {
+    const savedAccent = await Storage.getSetting('accentColor');
+    if (savedAccent) {
+      settingAccent.value = savedAccent;
+      document.documentElement.style.setProperty('--accent', savedAccent);
+      document.documentElement.style.setProperty('--accent-hover', lightenColor(savedAccent, 20));
+    }
+  } catch (_) {}
+
+  settingAccent.addEventListener('input', (e) => {
+    const color = e.target.value;
+    document.documentElement.style.setProperty('--accent', color);
+    document.documentElement.style.setProperty('--accent-hover', lightenColor(color, 20));
+    try { Storage.saveSetting('accentColor', color); } catch (_) {}
+  });
+
+  function lightenColor(hex, percent) {
+    const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + percent);
+    const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + percent);
+    const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + percent);
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+
+  // --- Crossfade Slider ---
+  const settingCrossfade = $('#setting-crossfade');
+  const crossfadeValue = $('#crossfade-value');
+
+  try {
+    const savedCrossfade = await Storage.getSetting('crossfade');
+    if (savedCrossfade != null) {
+      settingCrossfade.value = savedCrossfade;
+      crossfadeValue.textContent = savedCrossfade + 's';
+    }
+  } catch (_) {}
+
+  settingCrossfade.addEventListener('input', (e) => {
+    crossfadeValue.textContent = e.target.value + 's';
+    try { Storage.saveSetting('crossfade', Number(e.target.value)); } catch (_) {}
+  });
+
+  // --- Default Speed ---
+  const settingSpeed = $('#setting-speed');
+
+  try {
+    const savedSpeed = await Storage.getSetting('defaultSpeed');
+    if (savedSpeed != null) {
+      settingSpeed.value = savedSpeed;
+      Player.setSpeed(Number(savedSpeed));
+      const idx = speeds.indexOf(Number(savedSpeed));
+      if (idx >= 0) { speedIdx = idx; btnSpeed.textContent = savedSpeed + 'x'; }
+    }
+  } catch (_) {}
+
+  settingSpeed.addEventListener('change', (e) => {
+    const val = Number(e.target.value);
+    Player.setSpeed(val);
+    const idx = speeds.indexOf(val);
+    if (idx >= 0) { speedIdx = idx; btnSpeed.textContent = val + 'x'; }
+    try { Storage.saveSetting('defaultSpeed', e.target.value); } catch (_) {}
+  });
+
+  // --- Gapless / Normalization / Remember Position checkboxes ---
+  const settingGapless = $('#setting-gapless');
+  const settingNormalize = $('#setting-normalize');
+  const settingRememberPos = $('#setting-remember-pos');
+
+  try {
+    const savedGapless = await Storage.getSetting('gapless');
+    if (savedGapless) settingGapless.checked = true;
+    const savedNormalize = await Storage.getSetting('normalize');
+    if (savedNormalize) settingNormalize.checked = true;
+    const savedRememberPos = await Storage.getSetting('rememberPosition');
+    if (savedRememberPos) settingRememberPos.checked = true;
+  } catch (_) {}
+
+  settingGapless.addEventListener('change', (e) => {
+    try { Storage.saveSetting('gapless', e.target.checked); } catch (_) {}
+  });
+  settingNormalize.addEventListener('change', (e) => {
+    try { Storage.saveSetting('normalize', e.target.checked); } catch (_) {}
+  });
+  settingRememberPos.addEventListener('change', (e) => {
+    try { Storage.saveSetting('rememberPosition', e.target.checked); } catch (_) {}
+  });
+
+  // Save playback position periodically when "remember position" is on
+  let positionSaveInterval = null;
+  function startPositionSaving() {
+    if (positionSaveInterval) return;
+    positionSaveInterval = setInterval(() => {
+      if (settingRememberPos.checked && Player.getState().isPlaying) {
+        const state = Player.getState();
+        if (state.currentTrack) {
+          try {
+            Storage.saveState('lastPosition', {
+              trackId: state.currentTrack.id,
+              time: Player.getCurrentTime(),
+            });
+          } catch (_) {}
+        }
+      }
+    }, 5000);
+  }
+  startPositionSaving();
+
+  // Restore position on track load if enabled
+  Player.on('trackloaded', async (track) => {
+    if (!settingRememberPos.checked) return;
+    try {
+      const pos = await Storage.getState('lastPosition');
+      if (pos && pos.trackId === track.id && pos.time > 0) {
+        Player.seek(pos.time);
+      }
+    } catch (_) {}
+  });
+
+  // --- Sleep Timer ---
+  let sleepTimerId = null;
+  let sleepEndTime = 0;
+  let sleepDisplayId = null;
+  const sleepCountdown = $('#sleep-countdown');
+  const sleepRemaining = $('#sleep-remaining');
+
+  function startSleepTimer(minutes) {
+    clearSleepTimer();
+    sleepEndTime = Date.now() + minutes * 60000;
+    sleepTimerId = setTimeout(() => {
+      Player.pause();
+      clearSleepTimer();
+    }, minutes * 60000);
+    sleepCountdown.classList.remove('hidden');
+    updateSleepDisplay();
+    sleepDisplayId = setInterval(updateSleepDisplay, 1000);
+  }
+
+  function clearSleepTimer() {
+    if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
+    if (sleepDisplayId) { clearInterval(sleepDisplayId); sleepDisplayId = null; }
+    sleepCountdown.classList.add('hidden');
+    sleepEndTime = 0;
+  }
+
+  function updateSleepDisplay() {
+    const remaining = Math.max(0, sleepEndTime - Date.now());
+    if (remaining <= 0) { clearSleepTimer(); return; }
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    sleepRemaining.textContent = `${mins}m ${secs.toString().padStart(2, '0')}s`;
+  }
+
+  document.querySelectorAll('.sleep-btn').forEach(btn => {
+    btn.addEventListener('click', () => startSleepTimer(Number(btn.dataset.minutes)));
+  });
+
+  $('#btn-sleep-set').addEventListener('click', () => {
+    const val = Number($('#sleep-custom').value);
+    if (val > 0 && val <= 480) startSleepTimer(val);
+  });
+
+  $('#btn-sleep-cancel').addEventListener('click', clearSleepTimer);
+
+  // --- Data: Clear All ---
+  $('#btn-clear-data').addEventListener('click', async () => {
+    if (!confirm('Clear all playlists, settings, and stored audio? This cannot be undone.')) return;
+    try {
+      await Storage.clearAll();
+      window.location.reload();
+    } catch (err) {
+      alert('Error clearing data: ' + err.message);
+    }
+  });
+
+  // --- Data: Export Settings ---
+  $('#btn-export-settings').addEventListener('click', async () => {
+    try {
+      const settings = {};
+      for (const key of ['theme', 'accentColor', 'crossfade', 'defaultSpeed', 'gapless', 'normalize', 'rememberPosition', 'volume']) {
+        settings[key] = await Storage.getSetting(key);
+      }
+      const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bass-studio-settings.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Export failed: ' + err.message);
+    }
+  });
+
+  // --- Data: Import Settings ---
+  $('#btn-import-settings').addEventListener('click', () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.addEventListener('change', async () => {
+      if (!input.files.length) return;
+      try {
+        const text = await input.files[0].text();
+        const settings = JSON.parse(text);
+        for (const [key, value] of Object.entries(settings)) {
+          if (value != null) await Storage.saveSetting(key, value);
+        }
+        window.location.reload();
+      } catch (err) {
+        alert('Import failed: ' + err.message);
+      }
+    });
+    input.click();
   });
 
   // ============================================

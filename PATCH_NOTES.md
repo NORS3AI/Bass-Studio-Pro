@@ -2,6 +2,22 @@
 
 ---
 
+## v0.7.1 — 2026-04-04
+
+### Settings Fully Wired
+
+- **Accent color picker works**: Changing the accent color in Settings now updates the entire UI theme in real-time. Custom accent persists across sessions
+- **Crossfade slider shows value**: Slider now updates the seconds display as you drag and saves your preference (crossfade engine coming in Phase 7)
+- **Default speed setting**: Dropdown in Settings now sets the playback speed and persists it — applied on app launch
+- **Sleep timer functional**: All quick-select buttons (15/30/45/60/120 min) and custom minutes input work. Shows live countdown. Pauses music when timer expires
+- **Remember playback position**: When enabled, saves your position every 5 seconds and resumes from that point when you reload and play the same track
+- **Gapless and normalization checkboxes**: State persists (engine implementation in Phase 7)
+- **Clear All Data**: Prompts for confirmation, then wipes all playlists, settings, stored audio, and reloads
+- **Export Settings**: Downloads all settings as a JSON file
+- **Import Settings**: Loads a settings JSON file and applies all values on reload
+
+---
+
 ## v0.7.0 — 2026-04-04
 
 ### Phase 6 Complete — Visualizers
