@@ -28,16 +28,35 @@ const PatchNotes = (() => {
     markSeen();
   }
 
+  /**
+   * Minimal markdown to HTML converter.
+   * Escapes HTML first to prevent XSS, then applies markdown transformations.
+   */
   function markdownToHTML(md) {
-    return md
+    // Escape HTML entities FIRST to prevent injection
+    const escaped = md
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+    // Now apply markdown transforms on the safe text
+    let html = escaped
       .replace(/^### (.+)$/gm, '<h4>$1</h4>')
       .replace(/^## (.+)$/gm, '<h3>$1</h3>')
       .replace(/^# (.+)$/gm, '<h2>$1</h2>')
       .replace(/^---$/gm, '<hr>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>')
-      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
-      .replace(/<\/ul>\s*<ul>/g, '')
-      .replace(/\n\n/g, '<br>');
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>');
+
+    // Wrap consecutive <li> blocks in <ul>
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+    // Clean up whitespace
+    html = html.replace(/\n\n+/g, '<br>');
+    html = html.replace(/\n/g, '');
+
+    return html;
   }
 
   function checkBadge() {

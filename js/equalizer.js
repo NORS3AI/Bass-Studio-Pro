@@ -56,7 +56,7 @@ const Equalizer = (() => {
 
   function setPreamp(value) {
     preamp = value;
-    // Preamp adjusts all bands relative offset — applied via Player gain
+    Player.setPreampGain(preamp);
   }
 
   function saveCustomPreset(name) {

@@ -2,6 +2,47 @@
 
 ---
 
+## v0.2.1 — 2026-04-04
+
+### Phase 1 Audit — 42 Issues Found, All Critical/High/Medium Fixed
+
+**CRITICAL fixes (4):**
+- `audioElement.play()` now awaits and catches Promise rejections (autoplay policy, AbortError)
+- `loadTrack()` pauses current playback before changing src, waits for `canplay` event before playing — eliminates race condition
+- Visualizer `resize()` now uses `setTransform()` instead of cumulative `scale()` — was corrupting all rendering after any resize
+- Panel toggle logic fixed: clicking EQ/Settings/Patch Notes again now properly closes the panel
+
+**HIGH fixes (8):**
+- File picker fallback (`pickViaInput`) now listens for `cancel` event — no longer hangs forever on Firefox/Safari when user cancels
+- `readEntry` for directories now loops `readEntries()` until empty — was silently dropping files from folders with >100 entries
+- Search results now use `playTrackById()` instead of array index — clicking a search result no longer plays the wrong track
+- `search()` uses `(t.title || '')` defensive access — won't crash on undefined metadata
+- Object URL memory leak fixed: temp Audio elements in `extractMetadata` are now cleaned up after reading duration
+- Equalizer `setPreamp()` now calls `Player.setPreampGain()` — preamp slider actually adjusts audio
+- Preamp slider in HTML wired to `Equalizer.setPreamp()` in app.js
+- Favorite button in now-playing bar wired up — toggles star on current track
+
+**MEDIUM fixes (6):**
+- Album art `<img>` no longer has empty `src=""` (removed attribute, hidden by default) — prevents spurious HTTP request
+- `F` key now toggles visualizer on/off (was only opening). VIZ button also toggles
+- Drag-and-drop uses enter/leave counter to prevent class flicker on child elements
+- `dropEffect = 'copy'` set on dragover for correct cursor icon
+- `exportPlaylist` appends anchor to DOM before click — fixes Firefox download
+- Patch notes markdown renderer now escapes HTML before transforms — prevents XSS injection
+
+**LOW fixes (5):**
+- Visualizer mode selection by number key uses `setMode(idx)` instead of infinite while loop
+- `Storage.init()` wrapped in try-catch — app degrades gracefully if IndexedDB unavailable
+- All `Storage.saveSetting` calls wrapped in try-catch
+- System theme option now uses `matchMedia` to detect `prefers-color-scheme`
+- `Player.off()` method added for future event listener cleanup
+- Recursive directory traversal capped at depth 10 to prevent stack overflow
+- File entry read errors now have error callbacks to prevent hung Promises
+- Playlist IDs now include random suffix to prevent millisecond collisions
+- Concurrent `addFiles` calls locked to prevent playlist corruption
+
+---
+
 ## v0.2.0 — 2026-04-04
 
 ### Phase 1 Complete — Core Playback Engine

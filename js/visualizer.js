@@ -18,6 +18,9 @@ const Visualizer = (() => {
   let modeIndex = 0;
   let active = false;
 
+  // Spectrogram needs a persistent image buffer to scroll
+  let spectroImageData = null;
+
   function init() {
     canvas = document.getElementById('visualizer-canvas');
     canvasCtx = canvas.getContext('2d');
@@ -27,6 +30,7 @@ const Visualizer = (() => {
   function start() {
     active = true;
     resize();
+    spectroImageData = null; // Reset spectrogram buffer
     draw();
   }
 
@@ -39,7 +43,9 @@ const Visualizer = (() => {
   function resize() {
     canvas.width = canvas.clientWidth * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
-    canvasCtx.scale(devicePixelRatio, devicePixelRatio);
+    // Use setTransform to avoid cumulative scaling
+    canvasCtx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    spectroImageData = null; // Invalidate spectrogram buffer on resize
   }
 
   function draw() {
@@ -48,7 +54,11 @@ const Visualizer = (() => {
 
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    canvasCtx.clearRect(0, 0, w, h);
+
+    // Spectrogram manages its own clearing (scrolling buffer)
+    if (MODES[modeIndex].id !== 'spectro') {
+      canvasCtx.clearRect(0, 0, w, h);
+    }
 
     switch (MODES[modeIndex].id) {
       case 'bars':       drawBars(w, h); break;
@@ -130,7 +140,6 @@ const Visualizer = (() => {
   }
 
   function drawParticles(w, h) {
-    // Simplified particle system — driven by bass energy
     const data = getFrequencyData();
     const bass = data.slice(0, 8).reduce((a, b) => a + b, 0) / (8 * 255);
     const count = 60;
@@ -149,14 +158,29 @@ const Visualizer = (() => {
   }
 
   function drawSpectrogram(w, h) {
-    // Placeholder — full implementation will scroll a heatmap
+    // Scrolling heatmap: shift previous frame left, draw new column on right
+    const pw = canvas.width;
+    const ph = canvas.height;
+
+    // Save current canvas content and shift left by 2 device pixels
+    canvasCtx.save();
+    canvasCtx.setTransform(1, 0, 0, 1, 0, 0); // Work in device pixels
+    const shift = 2;
+    if (spectroImageData) {
+      canvasCtx.putImageData(spectroImageData, -shift, 0);
+    }
+
     const data = getFrequencyData();
-    const barH = h / data.length;
+    const binH = ph / data.length;
     for (let i = 0; i < data.length; i++) {
       const val = data[i];
-      canvasCtx.fillStyle = `rgb(${val}, ${val / 2}, ${255 - val})`;
-      canvasCtx.fillRect(w - 2, h - i * barH, 2, barH);
+      canvasCtx.fillStyle = `rgb(${val}, ${Math.floor(val / 2)}, ${255 - val})`;
+      canvasCtx.fillRect(pw - shift, ph - (i + 1) * binH, shift, binH);
     }
+
+    // Store the current canvas for next frame's scroll
+    spectroImageData = canvasCtx.getImageData(0, 0, pw, ph);
+    canvasCtx.restore();
   }
 
   function drawBlob(w, h) {
@@ -167,20 +191,35 @@ const Visualizer = (() => {
     const cy = h / 2;
     const baseR = Math.min(cx, cy) * 0.3;
     const r = baseR + bass * baseR * 0.8;
-    const points = 6;
+    const points = 12; // More points for smoother shape
+    const t = performance.now() * 0.002;
 
     canvasCtx.beginPath();
     for (let i = 0; i <= points; i++) {
       const angle = (i / points) * Math.PI * 2;
-      const wobble = Math.sin(performance.now() * 0.002 + i * 1.5) * treble * 30;
-      const px = cx + Math.cos(angle) * (r + wobble);
-      const py = cy + Math.sin(angle) * (r + wobble);
-      i === 0 ? canvasCtx.moveTo(px, py) : canvasCtx.lineTo(px, py);
+      const wobble = Math.sin(t + i * 1.5) * treble * 30
+                   + Math.cos(t * 0.7 + i * 2.1) * bass * 20;
+      const pr = r + wobble;
+      const px = cx + Math.cos(angle) * pr;
+      const py = cy + Math.sin(angle) * pr;
+
+      if (i === 0) {
+        canvasCtx.moveTo(px, py);
+      } else {
+        // Use quadratic curves for smoother blob
+        const prevAngle = ((i - 0.5) / points) * Math.PI * 2;
+        const prevWobble = Math.sin(t + (i - 0.5) * 1.5) * treble * 30
+                         + Math.cos(t * 0.7 + (i - 0.5) * 2.1) * bass * 20;
+        const cpR = r + prevWobble;
+        const cpx = cx + Math.cos(prevAngle) * cpR;
+        const cpy = cy + Math.sin(prevAngle) * cpR;
+        canvasCtx.quadraticCurveTo(cpx, cpy, px, py);
+      }
     }
     canvasCtx.closePath();
     const grad = canvasCtx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.2);
-    grad.addColorStop(0, `rgba(108, 92, 231, 0.8)`);
-    grad.addColorStop(1, `rgba(108, 92, 231, 0.1)`);
+    grad.addColorStop(0, 'rgba(108, 92, 231, 0.8)');
+    grad.addColorStop(1, 'rgba(108, 92, 231, 0.1)');
     canvasCtx.fillStyle = grad;
     canvasCtx.fill();
   }
@@ -189,11 +228,21 @@ const Visualizer = (() => {
 
   function nextMode() {
     modeIndex = (modeIndex + 1) % MODES.length;
+    spectroImageData = null;
     return MODES[modeIndex];
   }
 
   function prevMode() {
     modeIndex = (modeIndex - 1 + MODES.length) % MODES.length;
+    spectroImageData = null;
+    return MODES[modeIndex];
+  }
+
+  function setMode(idx) {
+    if (idx >= 0 && idx < MODES.length) {
+      modeIndex = idx;
+      spectroImageData = null;
+    }
     return MODES[modeIndex];
   }
 
@@ -201,5 +250,5 @@ const Visualizer = (() => {
     return MODES[modeIndex];
   }
 
-  return { MODES, init, start, stop, nextMode, prevMode, getCurrentMode, resize };
+  return { MODES, init, start, stop, nextMode, prevMode, setMode, getCurrentMode, resize };
 })();

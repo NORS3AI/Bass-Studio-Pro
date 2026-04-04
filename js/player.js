@@ -26,6 +26,10 @@ const Player = (() => {
   function on(event, fn) {
     (listeners[event] = listeners[event] || []).push(fn);
   }
+  function off(event, fn) {
+    const list = listeners[event];
+    if (list) listeners[event] = list.filter(f => f !== fn);
+  }
   function emit(event, data) {
     (listeners[event] || []).forEach(fn => fn(data));
   }
@@ -61,7 +65,8 @@ const Player = (() => {
    * source → [eqFilters] → gain → analyser → destination
    */
   function connectGraph() {
-    // Disconnect everything first
+    if (!sourceNode || !gainNode || !analyser) return;
+
     sourceNode.disconnect();
     eqFilters.forEach(f => f.disconnect());
     gainNode.disconnect();
@@ -80,17 +85,53 @@ const Player = (() => {
     analyser.connect(ctx.destination);
   }
 
+  /**
+   * Load a track. Pauses current playback first to avoid AbortError.
+   * Returns a Promise that resolves when the track is ready to play.
+   */
   function loadTrack(track) {
+    // Pause current playback to prevent AbortError on src change
+    if (!audioElement.paused) {
+      audioElement.pause();
+    }
+
     currentTrack = track;
     audioElement.src = track.url;
     audioElement.playbackRate = speed;
     emit('trackloaded', track);
+
+    // Return a promise that resolves when audio is ready
+    return new Promise((resolve) => {
+      const onReady = () => {
+        audioElement.removeEventListener('canplay', onReady);
+        audioElement.removeEventListener('error', onError);
+        resolve(true);
+      };
+      const onError = () => {
+        audioElement.removeEventListener('canplay', onReady);
+        audioElement.removeEventListener('error', onError);
+        emit('error', { message: 'Failed to load track', track });
+        resolve(false);
+      };
+      audioElement.addEventListener('canplay', onReady);
+      audioElement.addEventListener('error', onError);
+    });
   }
 
-  function play() {
+  async function play() {
     if (!currentTrack) return;
-    if (ctx.state === 'suspended') ctx.resume();
-    audioElement.play();
+    // iOS Safari requires awaiting resume() before play()
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+    try {
+      await audioElement.play();
+    } catch (err) {
+      // Autoplay blocked or AbortError from rapid track switching — not fatal
+      if (err.name !== 'AbortError') {
+        emit('error', { message: 'Playback failed', error: err });
+      }
+    }
   }
 
   function pause() {
@@ -134,6 +175,17 @@ const Player = (() => {
     if (sourceNode) connectGraph();
   }
 
+  /**
+   * Apply preamp gain offset. Adjusts the master gain node.
+   * @param {number} db — preamp in dB (-12 to +12)
+   */
+  function setPreampGain(db) {
+    if (!gainNode) return;
+    // Convert dB to linear gain, layered on top of volume
+    const linear = Math.pow(10, db / 20);
+    gainNode.gain.value = isMuted ? 0 : volume * linear;
+  }
+
   function getAnalyser() {
     return analyser;
   }
@@ -155,8 +207,8 @@ const Player = (() => {
   }
 
   return {
-    init, on, loadTrack, play, pause, togglePlay, seek,
+    init, on, off, loadTrack, play, pause, togglePlay, seek,
     setVolume, getVolume, toggleMute, setSpeed, setEQFilters,
-    getAnalyser, getContext, getCurrentTime, getDuration, getState,
+    setPreampGain, getAnalyser, getContext, getCurrentTime, getDuration, getState,
   };
 })();

@@ -5,17 +5,25 @@
   'use strict';
 
   // --- Init core modules ---
-  await Storage.init();
+  // Wrap Storage.init in try-catch so app works even if IndexedDB is unavailable
+  try {
+    await Storage.init();
+  } catch (e) {
+    console.warn('IndexedDB unavailable, running without persistence:', e);
+  }
+
   Player.init();
   Equalizer.init();
   Visualizer.init();
   await PatchNotes.load();
 
   // --- Restore persisted volume ---
-  const savedVolume = await Storage.getSetting('volume');
-  if (savedVolume !== null) {
-    Player.setVolume(savedVolume);
-  }
+  try {
+    const savedVolume = await Storage.getSetting('volume');
+    if (savedVolume !== null) {
+      Player.setVolume(savedVolume);
+    }
+  } catch (_) {}
 
   // --- DOM refs ---
   const $ = (sel) => document.querySelector(sel);
@@ -49,6 +57,10 @@
   const vizOverlay     = $('#visualizer-overlay');
   const vizModeLabel   = $('#viz-mode-label');
 
+  // Hide album art initially (no src to avoid spurious request)
+  albumArt.style.display = 'none';
+  albumArt.removeAttribute('src');
+
   // Sync volume slider to restored value
   volumeSlider.value = Player.getVolume() * 100;
 
@@ -66,15 +78,24 @@
     if (files.length) await Playlist.addFiles(files);
   });
 
-  dropZone.addEventListener('dragover', (e) => {
+  // Drag-and-drop with counter to prevent flicker from child elements
+  let dragCounter = 0;
+  dropZone.addEventListener('dragenter', (e) => {
     e.preventDefault();
+    dragCounter++;
     dropZone.classList.add('dragover');
   });
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
   dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
+    dragCounter--;
+    if (dragCounter === 0) dropZone.classList.remove('dragover');
   });
   dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
+    dragCounter = 0;
     dropZone.classList.remove('dragover');
     const files = await FileLoader.handleDrop(e.dataTransfer);
     if (files.length) await Playlist.addFiles(files);
@@ -84,28 +105,39 @@
   // PLAYLIST RENDERING
   // ============================================
 
+  /**
+   * Render tracks into the list. Uses track.id for click handlers
+   * to avoid index mismatch when rendering search results.
+   */
   function renderTracks(tracks) {
     trackList.innerHTML = '';
 
     if (tracks.length === 0) {
-      trackList.innerHTML = '<li class="empty-state">No tracks loaded — use the buttons above to add music</li>';
+      trackList.innerHTML = '<li class="empty-state">No tracks loaded \u2014 use the buttons above to add music</li>';
       return;
     }
 
     const currentId = Playlist.getCurrentTrackId();
+    const pl = Playlist.getActive();
+    const fullTracks = pl ? pl.tracks : [];
 
     tracks.forEach((track, i) => {
       const li = document.createElement('li');
       li.dataset.id = track.id;
       if (track.id === currentId) li.classList.add('active');
 
+      // Find the real index in the full playlist for display numbering
+      const realIndex = fullTracks.indexOf(track);
+      const displayNum = realIndex >= 0 ? realIndex + 1 : i + 1;
+
       li.innerHTML = `
-        <span class="track-number">${i + 1}</span>
+        <span class="track-number">${displayNum}</span>
         <span class="track-name">${escapeHTML(track.title)}</span>
         <span class="track-duration">${formatTime(track.duration)}</span>
         <span class="track-fav">${Playlist.isFavorite(track.id) ? '\u2605' : '\u2606'}</span>
       `;
-      li.addEventListener('click', () => Playlist.playIndex(i));
+      // Use track ID to play, not array index — avoids search index mismatch
+      li.addEventListener('click', () => Playlist.playTrackById(track.id));
       li.querySelector('.track-fav').addEventListener('click', (e) => {
         e.stopPropagation();
         Playlist.toggleFavorite(track.id);
@@ -124,16 +156,23 @@
   // PLAYBACK (Phase 1: tasks 1.4–1.11)
   // ============================================
 
-  Playlist.on('playtrack', ({ track, index }) => {
-    Player.loadTrack(track);
-    Player.play();
+  Playlist.on('playtrack', async ({ track, index }) => {
+    const ok = await Player.loadTrack(track);
+    if (ok) Player.play();
+
     trackTitle.textContent = track.title;
     trackArtist.textContent = track.artist;
     albumArt.style.display = 'none'; // No album art extraction yet (Phase 3)
 
+    // Update favorite button
+    btnFavorite.innerHTML = Playlist.isFavorite(track.id) ? '&#x2605;' : '&#x2606;';
+
     // Re-render to update active highlight
     const pl = Playlist.getActive();
-    if (pl) renderTracks(pl.tracks);
+    if (pl) {
+      const query = searchInput.value;
+      renderTracks(query ? Playlist.search(query) : pl.tracks);
+    }
   });
 
   // Play / Pause (1.5)
@@ -149,6 +188,15 @@
 
   // Mute (1.9)
   btnMute.addEventListener('click', () => Player.toggleMute());
+
+  // Favorite in now-playing bar
+  btnFavorite.addEventListener('click', () => {
+    const id = Playlist.getCurrentTrackId();
+    if (id) {
+      Playlist.toggleFavorite(id);
+      btnFavorite.innerHTML = Playlist.isFavorite(id) ? '&#x2605;' : '&#x2606;';
+    }
+  });
 
   // Play/Pause icon update
   Player.on('statechange', (state) => {
@@ -177,7 +225,7 @@
   volumeSlider.addEventListener('input', () => {
     const v = volumeSlider.value / 100;
     Player.setVolume(v);
-    Storage.saveSetting('volume', v);
+    try { Storage.saveSetting('volume', v); } catch (_) {}
   });
 
   // Mute icon update (1.9)
@@ -202,35 +250,54 @@
   });
 
   // ============================================
-  // PANEL TOGGLES
+  // PANEL TOGGLES (fixed: save state before hiding all)
   // ============================================
 
-  function showOnly(section) {
+  function togglePanel(section) {
+    const wasVisible = !section.classList.contains('hidden');
+    // Hide all panels
     [eqSection, settingsSection, patchSection].forEach(s => s.classList.add('hidden'));
-    section.classList.toggle('hidden');
+    // Toggle: show only if it was previously hidden
+    if (!wasVisible) {
+      section.classList.remove('hidden');
+    }
   }
 
-  btnEqToggle.addEventListener('click', () => showOnly(eqSection));
-  btnSettings.addEventListener('click', () => showOnly(settingsSection));
+  btnEqToggle.addEventListener('click', () => togglePanel(eqSection));
+  btnSettings.addEventListener('click', () => togglePanel(settingsSection));
   btnPatchNotes.addEventListener('click', () => {
-    showOnly(patchSection);
-    PatchNotes.render($('#patch-notes-content'));
+    togglePanel(patchSection);
+    if (!patchSection.classList.contains('hidden')) {
+      PatchNotes.render($('#patch-notes-content'));
+    }
   });
 
   // ============================================
-  // VISUALIZER
+  // VISUALIZER (F toggles on/off, ESC closes)
   // ============================================
 
-  btnVizToggle.addEventListener('click', () => {
+  function openVisualizer() {
     vizOverlay.classList.remove('hidden');
     Visualizer.start();
     vizModeLabel.textContent = Visualizer.getCurrentMode().name;
-  });
+  }
 
-  $('#btn-viz-close').addEventListener('click', () => {
+  function closeVisualizer() {
     vizOverlay.classList.add('hidden');
     Visualizer.stop();
-  });
+  }
+
+  function toggleVisualizer() {
+    if (vizOverlay.classList.contains('hidden')) {
+      openVisualizer();
+    } else {
+      closeVisualizer();
+    }
+  }
+
+  btnVizToggle.addEventListener('click', toggleVisualizer);
+
+  $('#btn-viz-close').addEventListener('click', closeVisualizer);
 
   $('#btn-viz-next').addEventListener('click', () => {
     vizModeLabel.textContent = Visualizer.nextMode().name;
@@ -241,7 +308,7 @@
   });
 
   // ============================================
-  // EQ PRESETS & SLIDERS
+  // EQ PRESETS, SLIDERS & PREAMP
   // ============================================
 
   const eqPresetsContainer = $('#eq-presets');
@@ -279,6 +346,14 @@
   }
   renderEQSliders();
 
+  // Preamp slider
+  const eqPreamp = $('#eq-preamp');
+  if (eqPreamp) {
+    eqPreamp.addEventListener('input', () => {
+      Equalizer.setPreamp(parseFloat(eqPreamp.value));
+    });
+  }
+
   // ============================================
   // KEYBOARD SHORTCUTS
   // ============================================
@@ -303,13 +378,13 @@
         e.preventDefault();
         volumeSlider.value = Math.min(100, +volumeSlider.value + 5);
         Player.setVolume(volumeSlider.value / 100);
-        Storage.saveSetting('volume', volumeSlider.value / 100);
+        try { Storage.saveSetting('volume', volumeSlider.value / 100); } catch (_) {}
         break;
       case 'ArrowDown':
         e.preventDefault();
         volumeSlider.value = Math.max(0, +volumeSlider.value - 5);
         Player.setVolume(volumeSlider.value / 100);
-        Storage.saveSetting('volume', volumeSlider.value / 100);
+        try { Storage.saveSetting('volume', volumeSlider.value / 100); } catch (_) {}
         break;
       case 'm': case 'M':
         Player.toggleMute();
@@ -321,15 +396,14 @@
         Playlist.cycleRepeat();
         break;
       case 'f': case 'F':
-        btnVizToggle.click();
+        toggleVisualizer();
         break;
       case 'e': case 'E':
-        btnEqToggle.click();
+        togglePanel(eqSection);
         break;
       case 'Escape':
         if (!vizOverlay.classList.contains('hidden')) {
-          vizOverlay.classList.add('hidden');
-          Visualizer.stop();
+          closeVisualizer();
         }
         break;
       case '/':
@@ -339,8 +413,9 @@
       case '1': case '2': case '3': case '4': case '5': case '6':
         if (!vizOverlay.classList.contains('hidden')) {
           const idx = parseInt(e.key) - 1;
-          while (Visualizer.getCurrentMode() !== Visualizer.MODES[idx]) Visualizer.nextMode();
-          vizModeLabel.textContent = Visualizer.getCurrentMode().name;
+          if (idx < Visualizer.MODES.length) {
+            vizModeLabel.textContent = Visualizer.setMode(idx).name;
+          }
         }
         break;
     }
@@ -369,13 +444,35 @@
   // THEME
   // ============================================
 
-  const themeSetting = await Storage.getSetting('theme');
-  if (themeSetting) document.documentElement.dataset.theme = themeSetting;
+  try {
+    const themeSetting = await Storage.getSetting('theme');
+    if (themeSetting) {
+      applyTheme(themeSetting);
+      $('#setting-theme').value = themeSetting;
+    }
+  } catch (_) {}
+
+  function applyTheme(value) {
+    if (value === 'system') {
+      // Remove data-theme and let prefers-color-scheme decide
+      delete document.documentElement.dataset.theme;
+      const prefersDark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+    } else {
+      document.documentElement.dataset.theme = value;
+    }
+  }
 
   $('#setting-theme').addEventListener('change', (e) => {
-    const val = e.target.value;
-    document.documentElement.dataset.theme = val === 'system' ? '' : val;
-    Storage.saveSetting('theme', val);
+    applyTheme(e.target.value);
+    try { Storage.saveSetting('theme', e.target.value); } catch (_) {}
+  });
+
+  // Listen for system theme changes
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+    try {
+      Storage.getSetting('theme').then(t => { if (t === 'system') applyTheme('system'); });
+    } catch (_) {}
   });
 
   // ============================================

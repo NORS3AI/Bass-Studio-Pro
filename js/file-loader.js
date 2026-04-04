@@ -44,25 +44,42 @@ const FileLoader = (() => {
     return pickViaInput(document.getElementById('folder-input'));
   }
 
-  async function collectFromDirectory(dirHandle) {
+  async function collectFromDirectory(dirHandle, depth) {
+    if (depth === undefined) depth = 0;
+    if (depth > 10) return []; // Prevent infinite recursion from symlinks
     const files = [];
     for await (const entry of dirHandle.values()) {
       if (entry.kind === 'file' && AUDIO_EXTENSIONS.test(entry.name)) {
         files.push(await entry.getFile());
       } else if (entry.kind === 'directory') {
-        files.push(...await collectFromDirectory(entry));
+        files.push(...await collectFromDirectory(entry, depth + 1));
       }
     }
     return files;
   }
 
+  /**
+   * Pick files via hidden <input> element.
+   * Handles both file selection and user cancellation.
+   */
   function pickViaInput(input) {
     return new Promise((resolve) => {
+      const cleanup = () => {
+        input.onchange = null;
+        input.removeEventListener('cancel', onCancel);
+      };
+      const onCancel = () => {
+        cleanup();
+        resolve([]);
+      };
       input.onchange = () => {
         const files = Array.from(input.files).filter(f => AUDIO_EXTENSIONS.test(f.name));
         input.value = '';
+        cleanup();
         resolve(files);
       };
+      // 'cancel' event fires when user dismisses the picker (modern browsers)
+      input.addEventListener('cancel', onCancel);
       input.click();
     });
   }
@@ -88,21 +105,41 @@ const FileLoader = (() => {
     return files;
   }
 
-  function readEntry(entry) {
+  /**
+   * Recursively read filesystem entries from drag-and-drop.
+   * Handles batched readEntries() per spec.
+   */
+  function readEntry(entry, depth) {
+    if (depth === undefined) depth = 0;
+    if (depth > 10) return Promise.resolve([]);
+
     return new Promise((resolve) => {
       if (entry.isFile) {
-        entry.file((f) => {
-          resolve(AUDIO_EXTENSIONS.test(f.name) ? [f] : []);
-        });
+        entry.file(
+          (f) => resolve(AUDIO_EXTENSIONS.test(f.name) ? [f] : []),
+          () => resolve([]) // Error callback — file unreadable
+        );
       } else if (entry.isDirectory) {
         const reader = entry.createReader();
-        reader.readEntries(async (entries) => {
-          const results = [];
-          for (const e of entries) {
-            results.push(...await readEntry(e));
-          }
-          resolve(results);
-        });
+        const allEntries = [];
+
+        // readEntries returns batches — must loop until empty
+        function readBatch() {
+          reader.readEntries(async (entries) => {
+            if (entries.length === 0) {
+              // All batches read, now process entries
+              const results = [];
+              for (const e of allEntries) {
+                results.push(...await readEntry(e, depth + 1));
+              }
+              resolve(results);
+            } else {
+              allEntries.push(...entries);
+              readBatch(); // Read next batch
+            }
+          }, () => resolve([])); // Error reading directory
+        }
+        readBatch();
       } else {
         resolve([]);
       }
@@ -110,25 +147,38 @@ const FileLoader = (() => {
   }
 
   /**
-   * Extract metadata from an audio file (ID3 tags, etc.)
-   * Returns { title, artist, album, duration, art }
+   * Extract metadata from an audio file.
+   * Returns { title, artist, album, duration, file, url }
+   *
+   * Creates a blob URL for playback. The temp Audio element used for
+   * duration extraction is cleaned up to avoid resource leaks.
    */
   function extractMetadata(file) {
     return new Promise((resolve) => {
       const url = URL.createObjectURL(file);
       const audio = new Audio();
       audio.preload = 'metadata';
+
+      const cleanup = () => {
+        // Release the temp audio element's hold on the media resource
+        audio.removeAttribute('src');
+        audio.load();
+      };
+
       audio.onloadedmetadata = () => {
+        const duration = audio.duration;
+        cleanup();
         resolve({
           title: file.name.replace(AUDIO_EXTENSIONS, ''),
           artist: 'Unknown Artist',
           album: 'Unknown Album',
-          duration: audio.duration,
+          duration,
           file,
           url,
         });
       };
       audio.onerror = () => {
+        cleanup();
         resolve({
           title: file.name.replace(AUDIO_EXTENSIONS, ''),
           artist: 'Unknown Artist',
