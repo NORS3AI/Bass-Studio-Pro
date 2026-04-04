@@ -1316,24 +1316,35 @@
   let sleepTimerId = null;
   let sleepEndTime = 0;
   let sleepDisplayId = null;
+  let sleepOriginalVolume = null;
   const sleepCountdown = $('#sleep-countdown');
   const sleepRemaining = $('#sleep-remaining');
+  const SLEEP_FADE_MS = 30000;
 
   function startSleepTimer(minutes) {
     clearSleepTimer();
     sleepEndTime = Date.now() + minutes * 60000;
+    sleepOriginalVolume = Player.getVolume();
     sleepTimerId = setTimeout(() => {
       Player.pause();
+      // Restore original volume so next play session isn't silent
+      if (sleepOriginalVolume != null) Player.setVolume(sleepOriginalVolume);
+      sleepOriginalVolume = null;
       clearSleepTimer();
     }, minutes * 60000);
     sleepCountdown.classList.remove('hidden');
     updateSleepDisplay();
-    sleepDisplayId = setInterval(updateSleepDisplay, 1000);
+    sleepDisplayId = setInterval(updateSleepDisplay, 250);
   }
 
   function clearSleepTimer() {
     if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
     if (sleepDisplayId) { clearInterval(sleepDisplayId); sleepDisplayId = null; }
+    // If user cancels mid-fade, restore original volume
+    if (sleepOriginalVolume != null) {
+      Player.setVolume(sleepOriginalVolume);
+      sleepOriginalVolume = null;
+    }
     sleepCountdown.classList.add('hidden');
     sleepEndTime = 0;
   }
@@ -1344,6 +1355,11 @@
     const mins = Math.floor(remaining / 60000);
     const secs = Math.floor((remaining % 60000) / 1000);
     sleepRemaining.textContent = `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    // Fade-out over the last 30 seconds (8.11)
+    if (remaining < SLEEP_FADE_MS && sleepOriginalVolume != null) {
+      const ratio = remaining / SLEEP_FADE_MS;
+      Player.setVolume(sleepOriginalVolume * ratio);
+    }
   }
 
   document.querySelectorAll('.sleep-btn').forEach(btn => {
@@ -1420,6 +1436,53 @@
     });
     input.click();
   });
+
+  // --- Data: Reset Settings (8.17) ---
+  $('#btn-reset-settings').addEventListener('click', async () => {
+    if (!confirm('Reset all settings to defaults? Your playlists and stored audio will be kept.')) return;
+    try {
+      const keys = ['theme', 'accentColor', 'crossfade', 'defaultSpeed', 'pitch',
+        'gapless', 'normalize', 'rememberPosition', 'volume', 'eqPreset',
+        'eqBands', 'eqPreamp', 'eqBypassed', 'vizMode', 'vizTheme',
+        'vizCustomColor1', 'vizCustomColor2'];
+      for (const key of keys) {
+        try { await Storage.saveSetting(key, null); } catch (_) {}
+      }
+      alert('Settings reset. Reloading…');
+      window.location.reload();
+    } catch (err) {
+      alert('Reset failed: ' + err.message);
+    }
+  });
+
+  // --- Data: Storage Usage (8.15) ---
+  const storageUsageEl = $('#storage-usage');
+  async function updateStorageUsage() {
+    if (!storageUsageEl) return;
+    if (!navigator.storage || !navigator.storage.estimate) {
+      storageUsageEl.textContent = 'Storage: API not supported';
+      return;
+    }
+    try {
+      const { usage, quota } = await navigator.storage.estimate();
+      const used = formatBytes(usage || 0);
+      const total = formatBytes(quota || 0);
+      const pct = quota ? ((usage / quota) * 100).toFixed(1) : '?';
+      storageUsageEl.textContent = `Storage: ${used} / ${total} (${pct}%)`;
+    } catch (_) {
+      storageUsageEl.textContent = 'Storage: unavailable';
+    }
+  }
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1024 * 1024 * 1024) return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    return (b / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+  updateStorageUsage();
+  // Refresh storage usage whenever the Settings modal is opened
+  const settingsBtn = $('#btn-settings');
+  if (settingsBtn) settingsBtn.addEventListener('click', updateStorageUsage);
 
   // ============================================
   // MEDIA SESSION

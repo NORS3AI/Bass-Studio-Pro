@@ -138,6 +138,13 @@ html, body {
 
 .btn-danger { color: var(--danger); border-color: var(--danger); }
 
+.storage-usage {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.8;
+}
+
 /* ---------- Badge ---------- */
 .badge {
   position: absolute;

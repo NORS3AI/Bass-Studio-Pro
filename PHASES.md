@@ -145,23 +145,23 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 8 — Settings & Sleep Timer (v0.9.0)
 > **Goal**: Complete settings panel with all options wired up.
 
-- [ ] **8.1** Theme selector: Dark / Light / System — applies immediately, persists
-- [ ] **8.2** Accent color picker — updates CSS `--accent` custom property, persists
-- [ ] **8.3** Crossfade duration control (wired to Phase 7 engine)
-- [ ] **8.4** Gapless playback toggle
-- [ ] **8.5** Volume normalization toggle
-- [ ] **8.6** Remember playback position toggle
-- [ ] **8.7** Default playback speed selector
-- [ ] **8.8** Sleep timer — preset buttons (15m, 30m, 45m, 1hr, 2hr)
-- [ ] **8.9** Sleep timer — custom duration input
-- [ ] **8.10** Sleep timer — countdown display visible in UI
-- [ ] **8.11** Sleep timer — fade-out over last 30 seconds before stopping
-- [ ] **8.12** Sleep timer — cancel button
-- [ ] **8.13** Export all settings as JSON
-- [ ] **8.14** Import settings from JSON
-- [ ] **8.15** View IndexedDB storage usage
-- [ ] **8.16** Clear all data button with confirmation dialog
-- [ ] **8.17** Reset settings to defaults
+- [x] **8.1** Theme selector: Dark / Light / System — applies immediately, persists
+- [x] **8.2** Accent color picker — updates CSS `--accent` custom property, persists
+- [x] **8.3** Crossfade duration control (wired to Phase 7 engine)
+- [x] **8.4** Gapless playback toggle
+- [x] **8.5** Volume normalization toggle
+- [x] **8.6** Remember playback position toggle
+- [x] **8.7** Default playback speed selector
+- [x] **8.8** Sleep timer — preset buttons (15m, 30m, 45m, 1hr, 2hr)
+- [x] **8.9** Sleep timer — custom duration input
+- [x] **8.10** Sleep timer — countdown display visible in UI
+- [x] **8.11** Sleep timer — fade-out over last 30 seconds before stopping
+- [x] **8.12** Sleep timer — cancel button
+- [x] **8.13** Export all settings as JSON
+- [x] **8.14** Import settings from JSON
+- [x] **8.15** View IndexedDB storage usage
+- [x] **8.16** Clear all data button with confirmation dialog
+- [x] **8.17** Reset settings to defaults
 
 **Definition of done**: Every setting persists across sessions. Sleep timer counts down visibly and fades out audio before stopping. Export/import round-trips perfectly.
 

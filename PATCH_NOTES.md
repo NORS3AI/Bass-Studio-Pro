@@ -2,6 +2,26 @@
 
 ---
 
+## v0.9.0 — 2026-04-04
+
+### Phase 8: Settings & Sleep Timer (finishing touches)
+
+**Sleep timer (8.11):**
+- Audio now fades out smoothly over the last 30 seconds before the timer stops playback
+- Volume is restored automatically when the timer fires or is cancelled — the next play session starts at your normal level
+- Countdown display ticks more smoothly (updates 4×/sec instead of 1×/sec)
+
+**Storage usage (8.15):**
+- Settings panel now shows IndexedDB + Cache storage usage and total quota
+- Displays as "Storage: 14.2 MB / 2.1 GB (0.7%)" — refreshes whenever the Settings modal is opened
+- Uses `navigator.storage.estimate()`; gracefully falls back to "API not supported" on older browsers
+
+**Reset settings (8.17):**
+- New "Reset Settings" button in the Data section wipes all settings (theme, accent, EQ preset, viz mode, etc.) but **keeps your playlists and stored audio**
+- Asks for confirmation; reloads the page afterward to apply defaults
+
+---
+
 ## v0.8.0 — 2026-04-04
 
 ### Phase 7: Advanced Playback Features (partial)
