@@ -2,6 +2,16 @@
 
 ---
 
+## v0.5.1 — 2026-04-04
+
+### Bug Fixes
+
+- **iOS file picker**: Added explicit MIME types and file extensions to the file input accept attribute so iOS Safari recognizes .mp3 and other audio files (no more greyed-out Open button)
+- **Scroll overlap**: Switched to `100dvh` (dynamic viewport height) for main content area so it accounts for iOS Safari's address bar; content now scrolls fully to the bottom
+- **Duplicate heading**: Patch Notes panel no longer shows a redundant "Patch Notes — Bass Studio Pro" line above the version entries
+
+---
+
 ## v0.5.0 — 2026-04-04
 
 ### Phase 4 Complete — Search & Favorites

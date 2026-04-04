@@ -24,7 +24,9 @@ const PatchNotes = (() => {
   }
 
   function render(container) {
-    container.innerHTML = markdownToHTML(content);
+    // Strip the top-level heading (already shown in the panel's <h2>)
+    const stripped = content.replace(/^# .+\n*/m, '');
+    container.innerHTML = markdownToHTML(stripped);
     markSeen();
   }
 

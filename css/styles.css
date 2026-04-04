@@ -144,9 +144,10 @@ html, body {
 
 /* ---------- Main Content ---------- */
 #app {
-  height: calc(100vh - var(--top-bar-height) - var(--bar-height));
+  height: calc(100dvh - var(--top-bar-height) - var(--bar-height));
   overflow-y: auto;
   padding: 16px;
+  padding-bottom: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
