@@ -11,6 +11,12 @@
   Visualizer.init();
   await PatchNotes.load();
 
+  // --- Restore persisted volume ---
+  const savedVolume = await Storage.getSetting('volume');
+  if (savedVolume !== null) {
+    Player.setVolume(savedVolume);
+  }
+
   // --- DOM refs ---
   const $ = (sel) => document.querySelector(sel);
   const btnOpenFiles   = $('#btn-open-files');
@@ -36,13 +42,20 @@
   const timeTotal      = $('#time-total');
   const trackTitle     = $('#track-title');
   const trackArtist    = $('#track-artist');
+  const albumArt       = $('#album-art');
   const eqSection      = $('#eq-section');
   const settingsSection = $('#settings-section');
   const patchSection   = $('#patch-notes-section');
   const vizOverlay     = $('#visualizer-overlay');
   const vizModeLabel   = $('#viz-mode-label');
 
-  // --- File loading ---
+  // Sync volume slider to restored value
+  volumeSlider.value = Player.getVolume() * 100;
+
+  // ============================================
+  // FILE LOADING (Phase 1: tasks 1.1, 1.2, 1.3)
+  // ============================================
+
   btnOpenFiles.addEventListener('click', async () => {
     const files = await FileLoader.openFiles();
     if (files.length) await Playlist.addFiles(files);
@@ -53,8 +66,13 @@
     if (files.length) await Playlist.addFiles(files);
   });
 
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
   dropZone.addEventListener('drop', async (e) => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
@@ -62,17 +80,30 @@
     if (files.length) await Playlist.addFiles(files);
   });
 
-  // --- Playlist rendering ---
+  // ============================================
+  // PLAYLIST RENDERING
+  // ============================================
+
   function renderTracks(tracks) {
     trackList.innerHTML = '';
+
+    if (tracks.length === 0) {
+      trackList.innerHTML = '<li class="empty-state">No tracks loaded — use the buttons above to add music</li>';
+      return;
+    }
+
+    const currentId = Playlist.getCurrentTrackId();
+
     tracks.forEach((track, i) => {
       const li = document.createElement('li');
       li.dataset.id = track.id;
+      if (track.id === currentId) li.classList.add('active');
+
       li.innerHTML = `
         <span class="track-number">${i + 1}</span>
-        <span class="track-name">${track.title}</span>
+        <span class="track-name">${escapeHTML(track.title)}</span>
         <span class="track-duration">${formatTime(track.duration)}</span>
-        <span class="track-fav">${Playlist.isFavorite(track.id) ? '★' : '☆'}</span>
+        <span class="track-fav">${Playlist.isFavorite(track.id) ? '\u2605' : '\u2606'}</span>
       `;
       li.addEventListener('click', () => Playlist.playIndex(i));
       li.querySelector('.track-fav').addEventListener('click', (e) => {
@@ -89,46 +120,69 @@
     if (pl) renderTracks(pl.tracks);
   });
 
-  Playlist.on('playtrack', (track) => {
+  // ============================================
+  // PLAYBACK (Phase 1: tasks 1.4–1.11)
+  // ============================================
+
+  Playlist.on('playtrack', ({ track, index }) => {
     Player.loadTrack(track);
     Player.play();
     trackTitle.textContent = track.title;
     trackArtist.textContent = track.artist;
+    albumArt.style.display = 'none'; // No album art extraction yet (Phase 3)
+
+    // Re-render to update active highlight
+    const pl = Playlist.getActive();
+    if (pl) renderTracks(pl.tracks);
   });
 
-  // --- Search ---
-  searchInput.addEventListener('input', () => {
-    const results = searchInput.value ? Playlist.search(searchInput.value) : (Playlist.getActive()?.tracks || []);
-    renderTracks(results);
-  });
-
-  // --- Playback controls ---
+  // Play / Pause (1.5)
   btnPlay.addEventListener('click', () => Player.togglePlay());
+
+  // Previous / Next (1.10, 1.11)
   btnPrev.addEventListener('click', () => Playlist.prev());
   btnNext.addEventListener('click', () => Playlist.next());
+
+  // Shuffle / Repeat
   btnShuffle.addEventListener('click', () => Playlist.toggleShuffle());
   btnRepeat.addEventListener('click', () => Playlist.cycleRepeat());
+
+  // Mute (1.9)
   btnMute.addEventListener('click', () => Player.toggleMute());
 
+  // Play/Pause icon update
   Player.on('statechange', (state) => {
     btnPlay.innerHTML = state === 'playing' ? '&#x23f8;' : '&#x25b6;';
   });
 
+  // Time display + progress bar (1.6, 1.7)
   Player.on('timeupdate', ({ currentTime, duration }) => {
     timeElapsed.textContent = formatTime(currentTime);
     timeTotal.textContent = formatTime(duration);
-    if (duration) progressBar.value = (currentTime / duration) * 100;
+    if (duration && !progressBar.matches(':active')) {
+      progressBar.value = (currentTime / duration) * 100;
+    }
   });
 
+  // Auto-advance (1.11)
   Player.on('ended', () => Playlist.next());
 
+  // Seek (1.6)
   progressBar.addEventListener('input', () => {
     const dur = Player.getDuration();
     if (dur) Player.seek((progressBar.value / 100) * dur);
   });
 
+  // Volume (1.8) — persist on change
   volumeSlider.addEventListener('input', () => {
-    Player.setVolume(volumeSlider.value / 100);
+    const v = volumeSlider.value / 100;
+    Player.setVolume(v);
+    Storage.saveSetting('volume', v);
+  });
+
+  // Mute icon update (1.9)
+  Player.on('mutechange', (muted) => {
+    btnMute.innerHTML = muted ? '&#x1f507;' : '&#x1f50a;';
   });
 
   // Speed toggle
@@ -147,7 +201,10 @@
     btnRepeat.title = `Repeat: ${mode}`;
   });
 
-  // --- Panel toggles ---
+  // ============================================
+  // PANEL TOGGLES
+  // ============================================
+
   function showOnly(section) {
     [eqSection, settingsSection, patchSection].forEach(s => s.classList.add('hidden'));
     section.classList.toggle('hidden');
@@ -160,7 +217,10 @@
     PatchNotes.render($('#patch-notes-content'));
   });
 
-  // --- Visualizer ---
+  // ============================================
+  // VISUALIZER
+  // ============================================
+
   btnVizToggle.addEventListener('click', () => {
     vizOverlay.classList.remove('hidden');
     Visualizer.start();
@@ -180,7 +240,10 @@
     vizModeLabel.textContent = Visualizer.prevMode().name;
   });
 
-  // --- EQ presets ---
+  // ============================================
+  // EQ PRESETS & SLIDERS
+  // ============================================
+
   const eqPresetsContainer = $('#eq-presets');
   Equalizer.getPresetNames().forEach((name) => {
     const btn = document.createElement('button');
@@ -195,7 +258,6 @@
     eqPresetsContainer.appendChild(btn);
   });
 
-  // EQ sliders
   const eqSlidersContainer = $('#eq-sliders');
   function renderEQSliders() {
     eqSlidersContainer.innerHTML = '';
@@ -217,22 +279,63 @@
   }
   renderEQSliders();
 
-  // --- Keyboard shortcuts ---
+  // ============================================
+  // KEYBOARD SHORTCUTS
+  // ============================================
+
   document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+
     switch (e.key) {
-      case ' ':         e.preventDefault(); Player.togglePlay(); break;
-      case 'ArrowLeft': e.shiftKey ? Playlist.prev() : Player.seek(Player.getCurrentTime() - 5); break;
-      case 'ArrowRight':e.shiftKey ? Playlist.next() : Player.seek(Player.getCurrentTime() + 5); break;
-      case 'ArrowUp':   e.preventDefault(); volumeSlider.value = Math.min(100, +volumeSlider.value + 5); Player.setVolume(volumeSlider.value / 100); break;
-      case 'ArrowDown': e.preventDefault(); volumeSlider.value = Math.max(0, +volumeSlider.value - 5); Player.setVolume(volumeSlider.value / 100); break;
-      case 'm': case 'M': Player.toggleMute(); break;
-      case 's': case 'S': Playlist.toggleShuffle(); break;
-      case 'r': case 'R': Playlist.cycleRepeat(); break;
-      case 'f': case 'F': btnVizToggle.click(); break;
-      case 'e': case 'E': btnEqToggle.click(); break;
-      case 'Escape':    vizOverlay.classList.add('hidden'); Visualizer.stop(); break;
-      case '/':         e.preventDefault(); searchInput.focus(); break;
+      case ' ':
+        e.preventDefault();
+        Player.togglePlay();
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        e.shiftKey ? Playlist.prev() : Player.seek(Player.getCurrentTime() - 5);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        e.shiftKey ? Playlist.next() : Player.seek(Player.getCurrentTime() + 5);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        volumeSlider.value = Math.min(100, +volumeSlider.value + 5);
+        Player.setVolume(volumeSlider.value / 100);
+        Storage.saveSetting('volume', volumeSlider.value / 100);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        volumeSlider.value = Math.max(0, +volumeSlider.value - 5);
+        Player.setVolume(volumeSlider.value / 100);
+        Storage.saveSetting('volume', volumeSlider.value / 100);
+        break;
+      case 'm': case 'M':
+        Player.toggleMute();
+        break;
+      case 's': case 'S':
+        Playlist.toggleShuffle();
+        break;
+      case 'r': case 'R':
+        Playlist.cycleRepeat();
+        break;
+      case 'f': case 'F':
+        btnVizToggle.click();
+        break;
+      case 'e': case 'E':
+        btnEqToggle.click();
+        break;
+      case 'Escape':
+        if (!vizOverlay.classList.contains('hidden')) {
+          vizOverlay.classList.add('hidden');
+          Visualizer.stop();
+        }
+        break;
+      case '/':
+        e.preventDefault();
+        searchInput.focus();
+        break;
       case '1': case '2': case '3': case '4': case '5': case '6':
         if (!vizOverlay.classList.contains('hidden')) {
           const idx = parseInt(e.key) - 1;
@@ -243,12 +346,29 @@
     }
   });
 
-  // --- Window resize ---
+  // ============================================
+  // WINDOW RESIZE
+  // ============================================
+
   window.addEventListener('resize', () => {
     if (!vizOverlay.classList.contains('hidden')) Visualizer.resize();
   });
 
-  // --- Theme ---
+  // ============================================
+  // SEARCH
+  // ============================================
+
+  searchInput.addEventListener('input', () => {
+    const results = searchInput.value
+      ? Playlist.search(searchInput.value)
+      : (Playlist.getActive()?.tracks || []);
+    renderTracks(results);
+  });
+
+  // ============================================
+  // THEME
+  // ============================================
+
   const themeSetting = await Storage.getSetting('theme');
   if (themeSetting) document.documentElement.dataset.theme = themeSetting;
 
@@ -258,7 +378,10 @@
     Storage.saveSetting('theme', val);
   });
 
-  // --- Media Session ---
+  // ============================================
+  // MEDIA SESSION API
+  // ============================================
+
   if ('mediaSession' in navigator) {
     navigator.mediaSession.setActionHandler('play', () => Player.play());
     navigator.mediaSession.setActionHandler('pause', () => Player.pause());
@@ -274,11 +397,20 @@
     });
   }
 
-  // --- Helpers ---
+  // ============================================
+  // HELPERS
+  // ============================================
+
   function formatTime(sec) {
     if (!sec || !isFinite(sec)) return '0:00';
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 })();

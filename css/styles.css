@@ -230,6 +230,17 @@ html, body {
 }
 #track-list li:hover { background: var(--bg-hover); }
 #track-list li.active { background: var(--accent); color: #fff; }
+#track-list li.active .track-duration,
+#track-list li.active .track-number { color: rgba(255,255,255,0.7); }
+
+.empty-state {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 24px;
+  font-size: 13px;
+  cursor: default;
+}
+.empty-state:hover { background: none; }
 
 .track-number { width: 24px; text-align: right; color: var(--text-secondary); font-size: 12px; }
 .track-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

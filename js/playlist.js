@@ -4,11 +4,12 @@
 const Playlist = (() => {
   let playlists = [];          // Array of { id, name, tracks[] }
   let activePlaylistId = null;
-  let queue = [];              // Current ordered queue of track indices
-  let currentIndex = -1;
+  let queue = [];              // Indices into the active playlist's tracks[]
+  let currentQueuePos = -1;    // Position within the queue
   let shuffleOn = false;
   let repeatMode = 'off';     // 'off' | 'all' | 'one'
   let favorites = new Set();
+  let currentTrackId = null;   // id of the currently playing track
 
   const listeners = {};
   function on(event, fn) { (listeners[event] = listeners[event] || []).push(fn); }
@@ -39,8 +40,10 @@ const Playlist = (() => {
 
   async function addFiles(files) {
     let pl = getActive();
-    if (!pl) pl = createPlaylist('My Playlist');
-    if (!activePlaylistId) activePlaylistId = pl.id;
+    if (!pl) {
+      pl = createPlaylist('My Playlist');
+      activePlaylistId = pl.id;
+    }
 
     for (const file of files) {
       const meta = await FileLoader.extractMetadata(file);
@@ -66,7 +69,18 @@ const Playlist = (() => {
     const pl = getActive();
     if (!pl) { queue = []; return; }
     queue = pl.tracks.map((_, i) => i);
-    if (shuffleOn) shuffleArray(queue);
+    if (shuffleOn) {
+      // Keep currently playing track at position 0 if there is one
+      const playingIdx = pl.tracks.findIndex(t => t.id === currentTrackId);
+      shuffleArray(queue);
+      if (playingIdx >= 0) {
+        const pos = queue.indexOf(playingIdx);
+        if (pos > 0) {
+          [queue[0], queue[pos]] = [queue[pos], queue[0]];
+        }
+        currentQueuePos = 0;
+      }
+    }
   }
 
   function shuffleArray(arr) {
@@ -88,28 +102,66 @@ const Playlist = (() => {
     emit('repeatchanged', repeatMode);
   }
 
-  function playIndex(index) {
+  /**
+   * Play a track by its index in the visible track list.
+   * This maps directly to playlist.tracks[index].
+   */
+  function playIndex(trackIndex) {
     const pl = getActive();
-    if (!pl || index < 0 || index >= pl.tracks.length) return;
-    currentIndex = index;
-    const track = pl.tracks[queue[currentIndex]];
-    emit('playtrack', track);
+    if (!pl || trackIndex < 0 || trackIndex >= pl.tracks.length) return;
+
+    // Find this track's position in the queue
+    const queuePos = queue.indexOf(trackIndex);
+    if (queuePos >= 0) currentQueuePos = queuePos;
+
+    const track = pl.tracks[trackIndex];
+    currentTrackId = track.id;
+    emit('playtrack', { track, index: trackIndex });
   }
 
   function next() {
     const pl = getActive();
-    if (!pl) return;
-    if (repeatMode === 'one') { playIndex(currentIndex); return; }
-    if (currentIndex < queue.length - 1) {
-      playIndex(currentIndex + 1);
-    } else if (repeatMode === 'all') {
-      playIndex(0);
+    if (!pl || queue.length === 0) return;
+
+    if (repeatMode === 'one') {
+      // Replay current
+      const trackIndex = queue[currentQueuePos];
+      const track = pl.tracks[trackIndex];
+      emit('playtrack', { track, index: trackIndex });
+      return;
     }
+
+    if (currentQueuePos < queue.length - 1) {
+      currentQueuePos++;
+    } else if (repeatMode === 'all') {
+      currentQueuePos = 0;
+    } else {
+      return; // End of playlist, no repeat
+    }
+
+    const trackIndex = queue[currentQueuePos];
+    const track = pl.tracks[trackIndex];
+    currentTrackId = track.id;
+    emit('playtrack', { track, index: trackIndex });
   }
 
   function prev() {
-    if (Player.getCurrentTime() > 3) { Player.seek(0); return; }
-    if (currentIndex > 0) playIndex(currentIndex - 1);
+    const pl = getActive();
+    if (!pl || queue.length === 0) return;
+
+    // If more than 3 seconds in, restart current track
+    if (Player.getCurrentTime() > 3) {
+      Player.seek(0);
+      return;
+    }
+
+    if (currentQueuePos > 0) {
+      currentQueuePos--;
+      const trackIndex = queue[currentQueuePos];
+      const track = pl.tracks[trackIndex];
+      currentTrackId = track.id;
+      emit('playtrack', { track, index: trackIndex });
+    }
   }
 
   function toggleFavorite(trackId) {
@@ -119,6 +171,10 @@ const Playlist = (() => {
 
   function isFavorite(trackId) {
     return favorites.has(trackId);
+  }
+
+  function getCurrentTrackId() {
+    return currentTrackId;
   }
 
   function search(query) {
@@ -135,7 +191,10 @@ const Playlist = (() => {
   function exportPlaylist() {
     const pl = getActive();
     if (!pl) return;
-    const data = JSON.stringify({ name: pl.name, tracks: pl.tracks.map(t => ({ title: t.title, artist: t.artist, album: t.album })) }, null, 2);
+    const data = JSON.stringify({
+      name: pl.name,
+      tracks: pl.tracks.map(t => ({ title: t.title, artist: t.artist, album: t.album })),
+    }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -148,7 +207,7 @@ const Playlist = (() => {
   return {
     on, createPlaylist, deletePlaylist, setActive, getActive,
     addFiles, removeTrack, toggleShuffle, cycleRepeat,
-    playIndex, next, prev, search,
+    playIndex, next, prev, search, getCurrentTrackId,
     toggleFavorite, isFavorite, exportPlaylist,
     get playlists() { return playlists; },
     get shuffleOn() { return shuffleOn; },

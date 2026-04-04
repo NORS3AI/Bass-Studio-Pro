@@ -1,7 +1,10 @@
 /**
  * player.js — Web Audio API playback engine
  *
- * Audio graph: source → gainNode → eqFilters[] → analyser → destination
+ * Audio graph: source → eqFilters[] → gainNode → analyser → destination
+ *
+ * IMPORTANT: MediaElementSource is created ONCE in init() and reused.
+ * Calling createMediaElementSource() more than once per element throws.
  */
 const Player = (() => {
   let ctx = null;
@@ -34,13 +37,13 @@ const Player = (() => {
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.8;
 
-    // Connect: gain → analyser → destination (EQ filters inserted later)
-    gainNode.connect(analyser);
-    analyser.connect(ctx.destination);
-    gainNode.gain.value = volume;
-
     audioElement = new Audio();
-    audioElement.crossOrigin = 'anonymous';
+
+    // Create the source node ONCE and keep it connected
+    sourceNode = ctx.createMediaElementSource(audioElement);
+    connectGraph();
+
+    gainNode.gain.value = volume;
 
     audioElement.addEventListener('timeupdate', () => {
       emit('timeupdate', {
@@ -53,26 +56,16 @@ const Player = (() => {
     audioElement.addEventListener('pause', () => { isPlaying = false; emit('statechange', 'paused'); });
   }
 
-  function loadTrack(track) {
-    if (sourceNode) {
-      sourceNode.disconnect();
-    }
-    currentTrack = track;
-    audioElement.src = track.url;
-    audioElement.playbackRate = speed;
-
-    sourceNode = ctx.createMediaElementSource(audioElement);
-    // Connect source to first EQ filter or directly to gain
-    reconnectGraph();
-
-    emit('trackloaded', track);
-  }
-
-  function reconnectGraph() {
-    if (!sourceNode) return;
+  /**
+   * (Re)connect the full audio graph.
+   * source → [eqFilters] → gain → analyser → destination
+   */
+  function connectGraph() {
+    // Disconnect everything first
     sourceNode.disconnect();
     eqFilters.forEach(f => f.disconnect());
     gainNode.disconnect();
+    analyser.disconnect();
 
     if (eqFilters.length > 0) {
       sourceNode.connect(eqFilters[0]);
@@ -87,7 +80,15 @@ const Player = (() => {
     analyser.connect(ctx.destination);
   }
 
+  function loadTrack(track) {
+    currentTrack = track;
+    audioElement.src = track.url;
+    audioElement.playbackRate = speed;
+    emit('trackloaded', track);
+  }
+
   function play() {
+    if (!currentTrack) return;
     if (ctx.state === 'suspended') ctx.resume();
     audioElement.play();
   }
@@ -97,16 +98,23 @@ const Player = (() => {
   }
 
   function togglePlay() {
+    if (!currentTrack) return;
     isPlaying ? pause() : play();
   }
 
   function seek(time) {
-    audioElement.currentTime = time;
+    if (!audioElement.duration) return;
+    audioElement.currentTime = Math.max(0, Math.min(time, audioElement.duration));
   }
 
   function setVolume(v) {
     volume = Math.max(0, Math.min(1, v));
     if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
+    emit('volumechange', volume);
+  }
+
+  function getVolume() {
+    return volume;
   }
 
   function toggleMute() {
@@ -123,7 +131,7 @@ const Player = (() => {
 
   function setEQFilters(filters) {
     eqFilters = filters;
-    reconnectGraph();
+    if (sourceNode) connectGraph();
   }
 
   function getAnalyser() {
@@ -148,7 +156,7 @@ const Player = (() => {
 
   return {
     init, on, loadTrack, play, pause, togglePlay, seek,
-    setVolume, toggleMute, setSpeed, setEQFilters,
+    setVolume, getVolume, toggleMute, setSpeed, setEQFilters,
     getAnalyser, getContext, getCurrentTime, getDuration, getState,
   };
 })();

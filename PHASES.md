@@ -7,17 +7,17 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 1 — Core Playback Engine (v0.2.0)
 > **Goal**: Load files and play audio. Nothing else matters until this works.
 
-- [ ] **1.1** Wire up `FileLoader.openFiles()` to the Open Files button — verify files are received
-- [ ] **1.2** Wire up `FileLoader.openFolder()` to the Open Folder button — recursively collect audio files
-- [ ] **1.3** Implement drag-and-drop on the drop zone — handle both files and folders
-- [ ] **1.4** Build the Web Audio API graph in `player.js`: MediaElementSource → GainNode → AnalyserNode → destination
-- [ ] **1.5** Play/Pause toggle — clicking a track in the list starts playback, Play button toggles
-- [ ] **1.6** Progress bar seek — click or drag to scrub through the track
-- [ ] **1.7** Time display — show elapsed / total in `mm:ss` format, update in real time
-- [ ] **1.8** Volume slider — connect to GainNode, persist last volume in IndexedDB
-- [ ] **1.9** Mute/unmute button
-- [ ] **1.10** Previous / Next buttons — Previous restarts if >3s in, otherwise goes back one track
-- [ ] **1.11** Auto-advance to next track when current track ends
+- [x] **1.1** Wire up `FileLoader.openFiles()` to the Open Files button — verify files are received
+- [x] **1.2** Wire up `FileLoader.openFolder()` to the Open Folder button — recursively collect audio files
+- [x] **1.3** Implement drag-and-drop on the drop zone — handle both files and folders
+- [x] **1.4** Build the Web Audio API graph in `player.js`: MediaElementSource → GainNode → AnalyserNode → destination
+- [x] **1.5** Play/Pause toggle — clicking a track in the list starts playback, Play button toggles
+- [x] **1.6** Progress bar seek — click or drag to scrub through the track
+- [x] **1.7** Time display — show elapsed / total in `mm:ss` format, update in real time
+- [x] **1.8** Volume slider — connect to GainNode, persist last volume in IndexedDB
+- [x] **1.9** Mute/unmute button
+- [x] **1.10** Previous / Next buttons — Previous restarts if >3s in, otherwise goes back one track
+- [x] **1.11** Auto-advance to next track when current track ends
 
 **Definition of done**: You can open a folder of MP3s, see them listed, click to play, scrub, adjust volume, and skip between tracks.
 
