@@ -2,6 +2,16 @@
 
 ---
 
+## v0.6.5 — 2026-04-04
+
+### Bug Fixes
+
+- **iPhone playback fixed**: Restructured audio initialization to work with iPhone Safari's strict autoplay policy. Play is now called synchronously within the user gesture chain instead of after an async `canplay` wait
+- **Audio element warm-up**: First tap anywhere on the page now plays a silent audio frame to unlock the audio element on iOS, preventing "play() was interrupted" errors
+- **Immediate playback**: `loadTrack` now starts playback instantly when setting the source instead of waiting — the browser buffers in the background
+
+---
+
 ## v0.6.4 — 2026-04-04
 
 ### Improvements

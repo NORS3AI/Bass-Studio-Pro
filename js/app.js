@@ -411,8 +411,8 @@
   // ============================================
 
   Playlist.on('playtrack', async ({ track, index }) => {
-    const ok = await Player.loadTrack(track);
-    if (ok) Player.play();
+    // loadTrack now calls play() immediately (required for iPhone gesture chain)
+    await Player.loadTrack(track);
 
     trackTitle.textContent = track.title;
     trackArtist.textContent = track.artist;

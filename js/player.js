@@ -57,9 +57,24 @@ const Player = (() => {
     gainNode.gain.value = volume;
 
     // iOS/Safari: AudioContext starts suspended. Unlock on first user gesture.
+    // Also warm up the audio element so future play() calls aren't blocked.
+    let audioUnlocked = false;
     function unlockAudio() {
       if (ctx.state === 'suspended') {
         ctx.resume();
+      }
+      // Warm up audio element with a silent play — required on iPhone
+      if (!audioUnlocked) {
+        audioUnlocked = true;
+        const silence = audioElement.src;
+        if (!silence) {
+          // Load a tiny silent data URI to unlock the element
+          audioElement.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+          audioElement.play().then(() => {
+            audioElement.pause();
+            audioElement.removeAttribute('src');
+          }).catch(() => {});
+        }
       }
       document.removeEventListener('touchstart', unlockAudio, true);
       document.removeEventListener('touchend', unlockAudio, true);
@@ -208,8 +223,13 @@ const Player = (() => {
   }
 
   /**
-   * Load a track. Pauses current playback first to avoid AbortError.
-   * Returns a Promise that resolves when the track is ready to play.
+   * Load a track and start playing immediately.
+   *
+   * IMPORTANT: On iPhone Safari, audioElement.play() MUST be called
+   * synchronously within the user gesture handler. Awaiting canplay
+   * breaks the gesture chain and play() gets rejected. So we set src
+   * and call play() in one synchronous flow — the browser buffers
+   * and starts playback when ready.
    */
   function loadTrack(track) {
     // Kill backup if it exists
@@ -230,7 +250,22 @@ const Player = (() => {
     audioElement.playbackRate = speed;
     emit('trackloaded', track);
 
-    // Return a promise that resolves when audio is ready
+    // Start playing immediately — don't await canplay (breaks iOS gesture)
+    // The browser will buffer and begin playback when ready.
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
+
+    const playPromise = audioElement.play();
+    if (playPromise) {
+      playPromise.catch(err => {
+        if (err.name !== 'AbortError') {
+          emit('error', { message: 'Playback failed', error: err });
+        }
+      });
+    }
+
+    // Return a promise that resolves once audio is confirmed playable
     return new Promise((resolve) => {
       const onReady = () => {
         audioElement.removeEventListener('canplay', onReady);
@@ -243,14 +278,18 @@ const Player = (() => {
         emit('error', { message: 'Failed to load track', track });
         resolve(false);
       };
-      audioElement.addEventListener('canplay', onReady);
-      audioElement.addEventListener('error', onError);
+      // If already have enough data, resolve immediately
+      if (audioElement.readyState >= 3) {
+        resolve(true);
+      } else {
+        audioElement.addEventListener('canplay', onReady);
+        audioElement.addEventListener('error', onError);
+      }
     });
   }
 
   async function play() {
     if (!currentTrack) return;
-    // Always attempt resume — must happen before audioElement.play()
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
