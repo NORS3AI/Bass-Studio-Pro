@@ -418,6 +418,52 @@ const Playlist = (() => {
     }
   }
 
+  // Advance the queue position to what next() would play, but DON'T emit
+  // 'playtrack' — used by crossfade/gapless, which have already started
+  // playing the next track on a secondary element. Returns the track or null.
+  function advanceQueue() {
+    const pl = getActive();
+    if (!pl || queue.length === 0) return null;
+    if (repeatMode === 'one') {
+      const t = pl.tracks[queue[currentQueuePos]];
+      if (t) recordPlay(t.id, pl.id);
+      return t || null;
+    }
+    const startPos = currentQueuePos;
+    let attempts = 0;
+    while (attempts < queue.length) {
+      if (currentQueuePos < queue.length - 1) currentQueuePos++;
+      else if (repeatMode === 'all') currentQueuePos = 0;
+      else return null;
+      const track = pl.tracks[queue[currentQueuePos]];
+      if (track && track.url) {
+        currentTrackId = track.id;
+        recordPlay(track.id, pl.id);
+        return track;
+      }
+      attempts++;
+      if (currentQueuePos === startPos) return null;
+    }
+    return null;
+  }
+
+  // Return the track that next() WOULD play, without advancing the queue.
+  // Used for crossfade/gapless pre-loading. Returns null if no next exists.
+  function peekNext() {
+    const pl = getActive();
+    if (!pl || queue.length === 0) return null;
+    if (repeatMode === 'one') return pl.tracks[queue[currentQueuePos]] || null;
+    let pos = currentQueuePos;
+    for (let i = 0; i < queue.length; i++) {
+      if (pos < queue.length - 1) pos++;
+      else if (repeatMode === 'all') pos = 0;
+      else return null;
+      const track = pl.tracks[queue[pos]];
+      if (track && track.url) return track;
+    }
+    return null;
+  }
+
   function prev() {
     const pl = getActive();
     if (!pl || queue.length === 0) return;
@@ -780,7 +826,7 @@ const Playlist = (() => {
     createPlaylist, renamePlaylist, deletePlaylist, duplicatePlaylist, clearPlaylist,
     addFiles, removeTrack, moveTrack,
     toggleShuffle, cycleRepeat, playNext, addToQueue,
-    playIndex, playTrackById, playFirst, next, prev,
+    playIndex, playTrackById, playFirst, next, prev, peekNext, advanceQueue,
     search, filterBy, getUniqueValues, sortTracks, getCurrentTrackId,
     toggleFavorite, isFavorite,
     getFavorites, getRecentlyPlayed, getMostPlayed, getPlayCount, findTrackById,

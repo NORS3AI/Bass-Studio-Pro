@@ -2,6 +2,37 @@
 
 ---
 
+## v0.10.0 — 2026-04-04
+
+### Phase 7 completion: Crossfade engine + gapless playback
+
+**Dual-slot audio engine:**
+- Rewrote the player around two `<audio>` elements feeding two `GainNode`s that sum into the EQ chain
+- Only the "active" slot emits timeupdate/ended/play/pause events; the inactive slot is used for pre-roll/pre-buffer
+- Crossfade and gapless swap flip the active slot instantly without reloading or reconnecting the graph
+
+**Crossfade (7.1):**
+- When the Settings crossfade slider is > 0 seconds, the next track is pre-loaded on the inactive slot when the current track becomes active
+- At `(duration - crossfadeSec)` into the current track, both slots ramp gains simultaneously (current 1→0, next 0→1) over the configured duration
+- Uses `linearRampToValueAtTime` on each slot's `GainNode` — sample-accurate timing, no JS polling
+- Active slot flips on crossfade completion; the outgoing element is stopped and cleared
+
+**Gapless (7.3):**
+- When "Gapless playback" is enabled, the next track is pre-buffered on the inactive slot while the current track plays
+- On the current track's `ended` event, the secondary slot plays instantly at full gain and becomes the new active slot — no perceptible gap
+
+**Interop:**
+- A-B loop is honored — crossfade is suppressed while an A-B loop is active (the loop naturally prevents ever reaching end-of-track)
+- User-initiated `loadTrack` (clicking a track, next/prev buttons) cancels any in-progress crossfade cleanly
+- Manual pause/play during a crossfade pauses/resumes both slots together
+- Normalization, EQ, sleep fade, and visualizer all work transparently because they operate downstream of the slot-gain mixer
+
+**Playlist additions:**
+- New `Playlist.peekNext()` — returns the upcoming track without advancing the queue, honoring shuffle/repeat
+- New `Playlist.advanceQueue()` — moves queue position without emitting `playtrack`, used when the player has already swapped to the preloaded secondary
+
+---
+
 ## v0.9.0 — 2026-04-04
 
 ### Phase 8: Settings & Sleep Timer (finishing touches)

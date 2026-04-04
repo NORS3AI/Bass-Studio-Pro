@@ -127,9 +127,9 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 7 — Advanced Playback Features (v0.8.0)
 > **Goal**: Crossfade, gapless, speed, pitch, A-B loop, normalization.
 
-- [ ] **7.1** Crossfade engine — pre-load next track, fade out current + fade in next simultaneously
+- [x] **7.1** Crossfade engine — pre-load next track, fade out current + fade in next simultaneously
 - [x] **7.2** Crossfade duration setting (0–12s slider in Settings)
-- [ ] **7.3** Gapless playback — pre-buffer the next track and switch with zero gap
+- [x] **7.3** Gapless playback — pre-buffer the next track and switch with zero gap
 - [x] **7.4** Playback speed control (0.5x–2.0x) — button cycles through, or setting sets default
 - [x] **7.5** Pitch shift independent of speed — semitone slider (-12 to +12)
 - [x] **7.6** A-B loop — click to set point A, click again to set point B, loop that section

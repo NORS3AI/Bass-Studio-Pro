@@ -432,33 +432,50 @@
   // PLAYBACK
   // ============================================
 
-  Playlist.on('playtrack', async ({ track, index }) => {
-    // loadTrack now calls play() immediately (required for iPhone gesture chain)
-    await Player.loadTrack(track);
-
+  function updateNowPlayingUI(track) {
     trackTitle.textContent = track.title;
     trackArtist.textContent = track.artist;
-
-    // Album art in Now Playing bar (3.4, 3.5)
     if (track.artUrl) {
       albumArt.src = track.artUrl;
-      albumArt.style.display = '';
-      albumArt.removeAttribute('hidden');
     } else {
       albumArt.src = PLACEHOLDER_ART;
-      albumArt.style.display = '';
-      albumArt.removeAttribute('hidden');
     }
-
+    albumArt.style.display = '';
+    albumArt.removeAttribute('hidden');
     btnFavorite.innerHTML = Playlist.isFavorite(track.id) ? '&#x2605;' : '&#x2606;';
-
     renderCurrentTracks();
+  }
+
+  Playlist.on('playtrack', async ({ track, index }) => {
+    // loadTrack calls play() immediately (required for iPhone gesture chain)
+    // and emits 'trackloaded' — the handler below updates UI + preloads next.
+    await Player.loadTrack(track);
+  });
+
+  // Unified trackloaded handler — fires both on user-initiated loadTrack()
+  // AND on crossfade/gapless swap-to-secondary.
+  Player.on('trackloaded', (track) => {
+    if (!track) return;
+    updateNowPlayingUI(track);
 
     // Volume normalization (7.9)
     if (settingNormalize && settingNormalize.checked) {
       applyTrackNormalization(track).catch(() => {});
     }
+
+    // Preload next track for crossfade/gapless (7.1, 7.3)
+    maybePreloadNext();
   });
+
+  // Preload the next track on the inactive slot if crossfade or gapless
+  // is enabled. Safe to call repeatedly.
+  function maybePreloadNext() {
+    const crossfadeSec = Number((settingCrossfade && settingCrossfade.value) || 0);
+    const gaplessOn = settingGapless && settingGapless.checked;
+    if (crossfadeSec <= 0 && !gaplessOn) return;
+    const next = Playlist.peekNext();
+    if (next && next.url) Player.preloadSecondary(next);
+  }
 
   // Peak-based volume normalization. Decodes a short head of the track in an
   // OfflineAudioContext, finds the peak sample, and scales the normalization
@@ -606,13 +623,48 @@
     if (duration && (abPointA !== null || abPointB !== null)) {
       updateABMarkers(duration);
     }
-    // A-B loop enforcement
-    if (abPointA !== null && abPointB !== null && currentTime >= abPointB) {
+    // A-B loop enforcement (disabled during a crossfade, which is ending
+    // the track anyway)
+    if (abPointA !== null && abPointB !== null && currentTime >= abPointB && !Player.isCrossfading()) {
       Player.seek(abPointA);
+    }
+
+    // Crossfade trigger (7.1)
+    const crossfadeSec = Number((settingCrossfade && settingCrossfade.value) || 0);
+    if (crossfadeSec > 0 && duration > 0 && !Player.isCrossfading()
+        && (abPointA === null || abPointB === null)
+        && (duration - currentTime) <= crossfadeSec) {
+      const next = Playlist.peekNext();
+      if (next && next.url && next.id !== Player.getState().currentTrack?.id) {
+        // Ensure the next track is preloaded (may not be if crossfade was
+        // toggled on mid-playback)
+        Player.preloadSecondary(next);
+        Player.startCrossfade(crossfadeSec, next);
+        // Advance Playlist's internal queue pointer to match
+        Playlist.advanceQueue();
+      }
     }
   });
 
-  Player.on('ended', () => Playlist.next());
+  Player.on('ended', () => {
+    // During a crossfade, the outgoing track ending is expected — the
+    // crossfade's own setTimeout will complete the swap. Ignore.
+    if (Player.isCrossfading()) return;
+    // Gapless swap (7.3): if the secondary was preloaded, swap to it instantly.
+    const gaplessOn = settingGapless && settingGapless.checked;
+    if (gaplessOn) {
+      const next = Playlist.peekNext();
+      if (next && next.url) {
+        Player.preloadSecondary(next);
+        if (Player.swapToSecondary(next)) {
+          Playlist.advanceQueue();
+          return;
+        }
+      }
+    }
+    // Fall through: normal next()
+    Playlist.next();
+  });
 
   progressBar.addEventListener('input', () => {
     const dur = Player.getDuration();
