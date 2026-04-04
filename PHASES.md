@@ -170,16 +170,16 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 9 — Mini Player & Responsive UI (v0.10.0)
 > **Goal**: Polish the UI for all screen sizes and add the mini player.
 
-- [ ] **9.1** Mini player — collapsed single-line bar showing art + title + play/pause
-- [ ] **9.2** Tap/click mini player to expand to full Now Playing view
+- [x] **9.1** Mini player — collapsed single-line bar showing art + title + play/pause
+- [x] **9.2** Tap/click mini player to expand to full Now Playing view
 - [ ] **9.3** Picture-in-Picture floating mini player (where browser supports it)
-- [ ] **9.4** Mobile layout — stack controls vertically, hide secondary controls behind a menu
+- [x] **9.4** Mobile layout — stack controls vertically, hide secondary controls behind a menu
 - [ ] **9.5** Tablet layout — two-column: playlist on left, player/EQ on right
-- [ ] **9.6** Touch-friendly: larger tap targets, swipe gestures (swipe to delete track, swipe down to close viz)
-- [ ] **9.7** Smooth transitions/animations between panel states
-- [ ] **9.8** Loading states — spinner when importing large folders
-- [ ] **9.9** Empty states — helpful messages when no tracks are loaded, no playlists exist
-- [ ] **9.10** Error states — graceful handling of unsupported file formats, decode failures
+- [x] **9.6** Touch-friendly: larger tap targets, swipe gestures (swipe to delete track, swipe down to close viz)
+- [x] **9.7** Smooth transitions/animations between panel states
+- [x] **9.8** Loading states — spinner when importing large folders
+- [x] **9.9** Empty states — helpful messages when no tracks are loaded, no playlists exist
+- [x] **9.10** Error states — graceful handling of unsupported file formats, decode failures
 
 **Definition of done**: App looks and feels native on iPhone, Android, iPad, and desktop. Mini player works. No broken layouts at any screen size.
 

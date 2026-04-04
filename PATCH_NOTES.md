@@ -2,6 +2,42 @@
 
 ---
 
+## v0.11.0 — 2026-04-04
+
+### Phase 9: Mini Player & Responsive UI
+
+**Mini player (mobile):**
+- Now-playing bar collapses to a compact mini player on screens ≤ 768px — album art, title/artist, play/prev/next only
+- New expand button (▲) reveals the full control set (shuffle, repeat, favorite, progress bar, secondary controls) in an expanded sheet
+- Swipe-down gesture on the expanded player collapses it back to the mini view
+- Expand button rotates 180° when expanded and updates its aria-label for screen readers
+
+**Responsive layout (9.4):**
+- Overhauled mobile breakpoint (≤ 768px): stacked panels, reflowed playlist controls, compact filters
+- All icon buttons enforce 44×44px minimum touch targets per Apple/Material guidelines
+- Toast container reflows above the mini player on mobile
+
+**Loading states (9.8):**
+- New full-screen loading overlay with spinner shown during file/folder ingestion
+- `showLoading(msg)` / `hideLoading()` helpers available app-wide
+- Spinner respects `prefers-reduced-motion`
+
+**Toasts & error states (9.9, 9.10):**
+- New toast notification system (`toast(message, type, duration)`) with success/error/info variants
+- File-load completion shows a success toast with track count
+- Player error events surface as error toasts instead of silent failures
+- Storage-full events (from Phase 8) now surface as error toasts
+- Toasts auto-dismiss with slide-out animation; multiple toasts stack
+
+**Accessibility:**
+- All new interactive elements have aria-labels
+- Loading overlay uses `role="status"` with `aria-live="polite"`
+- Toast container uses `aria-live="polite"` for non-intrusive announcements
+
+**Deferred:** 9.3 Picture-in-Picture and 9.5 dedicated tablet layout remain on the roadmap.
+
+---
+
 ## v0.10.0 — 2026-04-04
 
 ### Phase 7 completion: Crossfade engine + gapless playback

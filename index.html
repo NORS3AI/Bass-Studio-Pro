@@ -260,6 +260,7 @@
         <span id="track-artist" class="track-artist"></span>
       </div>
       <button id="btn-favorite" class="icon-btn" aria-label="Favorite">&#x2606;</button>
+      <button id="btn-np-expand" class="icon-btn np-expand-btn" aria-label="Expand player" title="Expand">&#x25b2;</button>
     </div>
 
     <div class="playback-controls">
@@ -295,6 +296,13 @@
   <!-- ============================================ -->
   <!-- SCRIPTS                                      -->
   <!-- ============================================ -->
+  <!-- Loading overlay + toast (9.8, 9.10) -->
+  <div id="loading-overlay" class="loading-overlay hidden" role="status" aria-live="polite" aria-hidden="true">
+    <div class="spinner" aria-hidden="true"></div>
+    <span id="loading-text" class="loading-text">Loading…</span>
+  </div>
+  <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
+
   <script src="js/storage.js"></script>
   <script src="js/id3-parser.js"></script>
   <script src="js/file-loader.js"></script>

@@ -1020,15 +1020,108 @@ html, body {
 /* ---------- Hidden Utility ---------- */
 .hidden { display: none !important; }
 
+/* ---------- Mini player expand button (9.1, 9.2) ---------- */
+.np-expand-btn { display: none; transition: transform var(--transition); }
+#now-playing-bar.np-expanded .np-expand-btn { transform: rotate(180deg); }
+
+/* ---------- Loading overlay (9.8) ---------- */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px;
+  backdrop-filter: blur(4px);
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { color: #fff; font-size: 14px; font-weight: 500; }
+
+/* ---------- Toasts (9.10) ---------- */
+.toast-container {
+  position: fixed; bottom: 120px; right: 16px;
+  z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  max-width: 340px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  animation: toast-in 0.22s ease-out;
+  border-left: 3px solid var(--accent);
+}
+.toast.toast-error { border-left-color: var(--danger); }
+.toast.toast-success { border-left-color: var(--success); }
+.toast.toast-leaving { animation: toast-out 0.18s ease-in forwards; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes toast-out {
+  to { opacity: 0; transform: translateY(8px); }
+}
+
+/* ---------- Smooth panel transitions (9.7) ---------- */
+.panel { transition: max-height var(--transition), opacity var(--transition); }
+
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
-  .now-playing-info { min-width: 0; }
-  .progress-row { display: none; }
-  .secondary-controls { display: none; }
-  .volume-control { display: none; }
-  #now-playing-bar { gap: 8px; }
+  /* Larger touch targets (9.6) */
+  .icon-btn { min-width: 44px; min-height: 44px; }
+  .btn-small { min-height: 36px; padding: 6px 12px; }
+
+  /* Mini player by default, expand-on-demand (9.1, 9.2) */
+  #now-playing-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .np-expand-btn { display: inline-flex; }
+
+  /* Collapsed: show only info row + primary play controls */
+  #now-playing-bar:not(.np-expanded) .progress-row,
+  #now-playing-bar:not(.np-expanded) .secondary-controls { display: none; }
+  #now-playing-bar:not(.np-expanded) .playback-controls #btn-shuffle,
+  #now-playing-bar:not(.np-expanded) .playback-controls #btn-repeat { display: none; }
+  #now-playing-bar:not(.np-expanded) #btn-favorite { display: none; }
+
+  /* Expanded: stack everything vertically */
+  #now-playing-bar.np-expanded {
+    flex-direction: column;
+    align-items: stretch;
+    max-height: 65vh;
+    overflow-y: auto;
+  }
+  #now-playing-bar.np-expanded .now-playing-info,
+  #now-playing-bar.np-expanded .playback-controls,
+  #now-playing-bar.np-expanded .progress-row,
+  #now-playing-bar.np-expanded .secondary-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .now-playing-info { flex: 1; min-width: 0; }
   .playlist-controls { flex-wrap: wrap; }
-  #search-input { width: 120px; }
+  #search-input { width: 100%; flex: 1 1 100%; }
+  .playlist-filters { flex-wrap: wrap; }
+  .track-meta { flex: 1; min-width: 0; }
+  .track-title, .track-artist { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast-container { left: 8px; right: 8px; bottom: 80px; }
+  .toast { max-width: none; }
 }
 
 /* ---------- Focus / Accessibility ---------- */

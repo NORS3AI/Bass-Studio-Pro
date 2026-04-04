@@ -65,21 +65,98 @@
   volumeSlider.value = Player.getVolume() * 100;
 
   // ============================================
+  // TOAST + LOADING OVERLAY (9.8, 9.10)
+  // ============================================
+
+  const toastContainer = $('#toast-container');
+  const loadingOverlay = $('#loading-overlay');
+  const loadingText = $('#loading-text');
+
+  function toast(message, type = 'info', duration = 3500) {
+    const el = document.createElement('div');
+    el.className = 'toast' + (type !== 'info' ? ` toast-${type}` : '');
+    el.textContent = message;
+    toastContainer.appendChild(el);
+    const remove = () => {
+      el.classList.add('toast-leaving');
+      setTimeout(() => el.remove(), 200);
+    };
+    setTimeout(remove, duration);
+    el.addEventListener('click', remove);
+    return el;
+  }
+
+  function showLoading(msg = 'Loading…') {
+    loadingText.textContent = msg;
+    loadingOverlay.classList.remove('hidden');
+    loadingOverlay.setAttribute('aria-hidden', 'false');
+  }
+  function hideLoading() {
+    loadingOverlay.classList.add('hidden');
+    loadingOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  // ============================================
+  // MINI PLAYER EXPAND (9.1, 9.2)
+  // ============================================
+
+  const nowPlayingBar = $('#now-playing-bar');
+  const btnNpExpand = $('#btn-np-expand');
+  if (btnNpExpand) {
+    btnNpExpand.addEventListener('click', () => {
+      const expanded = nowPlayingBar.classList.toggle('np-expanded');
+      btnNpExpand.setAttribute('aria-label', expanded ? 'Collapse player' : 'Expand player');
+      btnNpExpand.setAttribute('title', expanded ? 'Collapse' : 'Expand');
+    });
+  }
+
+  // Swipe-down on expanded NP bar to collapse (9.6)
+  let npTouchStartY = null;
+  nowPlayingBar.addEventListener('touchstart', (e) => {
+    if (!nowPlayingBar.classList.contains('np-expanded')) return;
+    npTouchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  nowPlayingBar.addEventListener('touchmove', (e) => {
+    if (npTouchStartY == null) return;
+    const dy = e.touches[0].clientY - npTouchStartY;
+    if (dy > 60) {
+      nowPlayingBar.classList.remove('np-expanded');
+      npTouchStartY = null;
+    }
+  }, { passive: true });
+  nowPlayingBar.addEventListener('touchend', () => { npTouchStartY = null; }, { passive: true });
+
+  // ============================================
   // FILE LOADING
   // ============================================
 
   btnOpenFiles.addEventListener('click', async () => {
     try {
       const files = await FileLoader.openFiles();
-      if (files.length) await Playlist.addFiles(files);
-    } catch (err) { console.warn('Open files failed:', err); }
+      if (!files.length) return;
+      if (files.length > 5) showLoading(`Importing ${files.length} files…`);
+      try { await Playlist.addFiles(files); }
+      finally { hideLoading(); }
+      toast(`Added ${files.length} track${files.length === 1 ? '' : 's'}`, 'success');
+    } catch (err) {
+      hideLoading();
+      toast('Open files failed: ' + (err && err.message || err), 'error');
+    }
   });
 
   btnOpenFolder.addEventListener('click', async () => {
     try {
+      showLoading('Scanning folder…');
       const files = await FileLoader.openFolder();
-      if (files.length) await Playlist.addFiles(files);
-    } catch (err) { console.warn('Open folder failed:', err); }
+      if (!files.length) { hideLoading(); return; }
+      showLoading(`Importing ${files.length} files…`);
+      try { await Playlist.addFiles(files); }
+      finally { hideLoading(); }
+      toast(`Added ${files.length} track${files.length === 1 ? '' : 's'} from folder`, 'success');
+    } catch (err) {
+      hideLoading();
+      toast('Open folder failed: ' + (err && err.message || err), 'error');
+    }
   });
 
   // Drag-and-drop on the whole main area
@@ -92,9 +169,14 @@
     e.preventDefault();
     try {
       const files = await FileLoader.handleDrop(e.dataTransfer);
-      if (files.length) await Playlist.addFiles(files);
+      if (!files.length) return;
+      if (files.length > 5) showLoading(`Importing ${files.length} files…`);
+      try { await Playlist.addFiles(files); }
+      finally { hideLoading(); }
+      toast(`Added ${files.length} track${files.length === 1 ? '' : 's'}`, 'success');
     } catch (err) {
-      console.warn('Drop handling failed:', err);
+      hideLoading();
+      toast('Drop failed: ' + (err && err.message || err), 'error');
     } finally {
       dragCounter = 0;
       dropZone.classList.remove('dragover');
@@ -104,7 +186,13 @@
 
   // Storage full notification
   Playlist.on('storagefull', () => {
-    alert('Storage full — audio for new tracks cannot be saved. Remove some tracks or clear old data in Settings.');
+    toast('Storage full — new tracks cannot be saved. Remove some tracks or clear data in Settings.', 'error', 6000);
+  });
+
+  // Player load errors (9.10)
+  Player.on('error', ({ message, track }) => {
+    const label = track && track.title ? ` "${track.title}"` : '';
+    toast(`${message}${label}`, 'error', 5000);
   });
 
   // ============================================
