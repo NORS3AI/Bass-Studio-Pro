@@ -2,6 +2,35 @@
 
 ---
 
+## v0.8.0 — 2026-04-04
+
+### Phase 7: Advanced Playback Features (partial)
+
+**A-B Loop (7.6-7.8):**
+- New A-B button in the playback progress row — click once to set point A, again to set point B, a third time to clear
+- Visual markers on the progress bar: green tick for A, red tick for B
+- Playback automatically seeks back to A when it reaches B, creating a loop
+- Loop auto-clears when changing tracks
+- Keyboard shortcut: press **L** to cycle A → B → clear
+
+**Pitch Shift (7.5):**
+- New pitch slider in Settings: -12 to +12 semitones
+- Setting persists across sessions
+- Note: Pitch shift uses `preservesPitch=false` — changing pitch also changes playback speed (true independent pitch shift requires a phase vocoder, deferred)
+
+**Volume Normalization (7.9):**
+- When "Volume normalization" is enabled in Settings, each track's peak amplitude is analyzed via an OfflineAudioContext sample of the first 60 seconds
+- A per-track normalization gain is applied so peaks land near -0.5 dBFS, evening out quiet vs loud tracks
+- Results are cached in-memory for the session, so repeated plays are instant
+- Toggling the checkbox off immediately resets normalization to unity gain
+- Graph now includes a dedicated `normGainNode` between EQ and master volume
+
+**Audio Graph:**
+- Added `normGainNode` to the player audio graph: source → EQ → **normGain** → masterGain → analyser → destination
+- New `Player.setNormalizationGain()` API
+
+---
+
 ## v0.7.2 — 2026-04-04
 
 ### Audit Fixes — Settings, File Loading, Visualizers, EQ

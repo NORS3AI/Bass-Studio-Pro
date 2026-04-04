@@ -12,6 +12,7 @@
 const Player = (() => {
   let ctx = null;
   let gainNode = null;
+  let normGainNode = null;
   let analyser = null;
   let sourceNode = null;
   let audioElement = null;
@@ -26,7 +27,23 @@ const Player = (() => {
   let isPlaying = false;
   let volume = 0.8;
   let speed = 1.0;
+  let pitchSemitones = 0;
   let isMuted = false;
+
+  function applyRate() {
+    const pitchRatio = Math.pow(2, pitchSemitones / 12);
+    const rate = speed * pitchRatio;
+    if (audioElement) {
+      try { audioElement.preservesPitch = (pitchSemitones === 0); } catch (_) {}
+      try { audioElement.mozPreservesPitch = (pitchSemitones === 0); } catch (_) {}
+      try { audioElement.webkitPreservesPitch = (pitchSemitones === 0); } catch (_) {}
+      audioElement.playbackRate = rate;
+    }
+    if (backupAudio) {
+      try { backupAudio.preservesPitch = (pitchSemitones === 0); } catch (_) {}
+      backupAudio.playbackRate = rate;
+    }
+  }
 
   const listeners = {};
 
@@ -44,6 +61,8 @@ const Player = (() => {
   function init() {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     gainNode = ctx.createGain();
+    normGainNode = ctx.createGain();
+    normGainNode.gain.value = 1.0;
     analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
     analyser.smoothingTimeConstant = 0.8;
@@ -146,7 +165,7 @@ const Player = (() => {
       backupAudio.src = audioElement.src;
       backupAudio.currentTime = audioElement.currentTime;
       backupAudio.volume = isMuted ? 0 : volume;
-      backupAudio.playbackRate = speed;
+      applyRate();
 
       // When backup track ends, advance to next
       backupAudio.addEventListener('ended', () => {
@@ -202,10 +221,11 @@ const Player = (() => {
    * source → [eqFilters] → gain → analyser → destination
    */
   function connectGraph() {
-    if (!sourceNode || !gainNode || !analyser) return;
+    if (!sourceNode || !gainNode || !analyser || !normGainNode) return;
 
     sourceNode.disconnect();
     eqFilters.forEach(f => f.disconnect());
+    normGainNode.disconnect();
     gainNode.disconnect();
     analyser.disconnect();
 
@@ -214,10 +234,11 @@ const Player = (() => {
       for (let i = 0; i < eqFilters.length - 1; i++) {
         eqFilters[i].connect(eqFilters[i + 1]);
       }
-      eqFilters[eqFilters.length - 1].connect(gainNode);
+      eqFilters[eqFilters.length - 1].connect(normGainNode);
     } else {
-      sourceNode.connect(gainNode);
+      sourceNode.connect(normGainNode);
     }
+    normGainNode.connect(gainNode);
     gainNode.connect(analyser);
     analyser.connect(ctx.destination);
   }
@@ -247,7 +268,9 @@ const Player = (() => {
 
     currentTrack = track;
     audioElement.src = track.url;
-    audioElement.playbackRate = speed;
+    applyRate();
+    // Reset normalization; app will compute & apply per track when enabled.
+    if (normGainNode) normGainNode.gain.value = 1.0;
     emit('trackloaded', track);
 
     // Start playing immediately — don't await canplay (breaks iOS gesture)
@@ -358,14 +381,25 @@ const Player = (() => {
 
   function setSpeed(s) {
     speed = s;
-    if (audioElement) audioElement.playbackRate = speed;
-    if (backupAudio) backupAudio.playbackRate = speed;
+    applyRate();
     emit('speedchange', speed);
+  }
+
+  function setPitch(semitones) {
+    pitchSemitones = Math.max(-12, Math.min(12, Number(semitones) || 0));
+    applyRate();
+    emit('pitchchange', pitchSemitones);
   }
 
   function setEQFilters(filters) {
     eqFilters = filters;
     if (sourceNode) connectGraph();
+  }
+
+  function setNormalizationGain(g) {
+    if (!normGainNode) return;
+    const v = Math.max(0.1, Math.min(4.0, Number(g) || 1.0));
+    normGainNode.gain.value = v;
   }
 
   function setPreampGain(db) {
@@ -393,12 +427,12 @@ const Player = (() => {
   }
 
   function getState() {
-    return { isPlaying, currentTrack, volume, speed, isMuted };
+    return { isPlaying, currentTrack, volume, speed, pitch: pitchSemitones, isMuted };
   }
 
   return {
     init, on, off, loadTrack, play, pause, togglePlay, seek,
-    setVolume, getVolume, toggleMute, setSpeed, setEQFilters,
-    setPreampGain, getAnalyser, getContext, getCurrentTime, getDuration, getState,
+    setVolume, getVolume, toggleMute, setSpeed, setPitch, setEQFilters,
+    setPreampGain, setNormalizationGain, getAnalyser, getContext, getCurrentTime, getDuration, getState,
   };
 })();

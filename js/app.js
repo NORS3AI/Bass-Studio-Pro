@@ -453,7 +453,52 @@
     btnFavorite.innerHTML = Playlist.isFavorite(track.id) ? '&#x2605;' : '&#x2606;';
 
     renderCurrentTracks();
+
+    // Volume normalization (7.9)
+    if (settingNormalize && settingNormalize.checked) {
+      applyTrackNormalization(track).catch(() => {});
+    }
   });
+
+  // Peak-based volume normalization. Decodes a short head of the track in an
+  // OfflineAudioContext, finds the peak sample, and scales the normalization
+  // gain so peaks land near the target. Results are cached in-memory per track.
+  const normCache = new Map();
+  async function applyTrackNormalization(track) {
+    if (!track || !track.url) return;
+    let gain = normCache.get(track.id);
+    if (gain == null) {
+      try {
+        const resp = await fetch(track.url);
+        const buf = await resp.arrayBuffer();
+        const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const tmp = new AudioCtx();
+        const decoded = await tmp.decodeAudioData(buf.slice(0));
+        tmp.close && tmp.close();
+        // Sample up to first 60s to keep analysis quick.
+        const sr = decoded.sampleRate;
+        const maxSamples = Math.min(decoded.length, sr * 60);
+        let peak = 0;
+        for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+          const data = decoded.getChannelData(ch);
+          for (let i = 0; i < maxSamples; i++) {
+            const a = Math.abs(data[i]);
+            if (a > peak) peak = a;
+          }
+        }
+        const target = 0.95;
+        gain = peak > 0.001 ? Math.min(4.0, target / peak) : 1.0;
+        normCache.set(track.id, gain);
+      } catch (_) {
+        gain = 1.0;
+      }
+    }
+    // Only apply if still on same track
+    if (Player.getState().currentTrack && Player.getState().currentTrack.id === track.id) {
+      Player.setNormalizationGain(gain);
+    }
+  }
 
   btnPlay.addEventListener('click', () => {
     if (!Player.getState().currentTrack) {
@@ -485,11 +530,86 @@
     btnPlay.innerHTML = state === 'playing' ? '&#x23f8;' : '&#x25b6;';
   });
 
+  // --- A-B Loop (7.6, 7.7, 7.8) ---
+  let abPointA = null;
+  let abPointB = null;
+  const btnABLoop = $('#btn-ab-loop');
+  const abMarkerA = $('#ab-marker-a');
+  const abMarkerB = $('#ab-marker-b');
+  const progressWrap = abMarkerA.parentElement;
+
+  function updateABMarkers(duration) {
+    if (!duration) return;
+    if (abPointA !== null) {
+      abMarkerA.classList.remove('hidden');
+      abMarkerA.style.left = `${(abPointA / duration) * 100}%`;
+    } else {
+      abMarkerA.classList.add('hidden');
+    }
+    if (abPointB !== null) {
+      abMarkerB.classList.remove('hidden');
+      abMarkerB.style.left = `${(abPointB / duration) * 100}%`;
+    } else {
+      abMarkerB.classList.add('hidden');
+    }
+  }
+
+  function updateABButton() {
+    btnABLoop.classList.remove('active-a', 'active-b');
+    if (abPointA !== null && abPointB !== null) {
+      btnABLoop.classList.add('active-b');
+      btnABLoop.textContent = 'A-B';
+      btnABLoop.title = 'A-B loop active — click to clear';
+    } else if (abPointA !== null) {
+      btnABLoop.classList.add('active-a');
+      btnABLoop.textContent = 'A…';
+      btnABLoop.title = 'Click to set point B';
+    } else {
+      btnABLoop.textContent = 'A-B';
+      btnABLoop.title = 'Click to set point A';
+    }
+  }
+
+  function cycleABLoop() {
+    const t = Player.getCurrentTime();
+    const dur = Player.getDuration();
+    if (!dur) return;
+    if (abPointA === null) {
+      abPointA = t;
+    } else if (abPointB === null) {
+      if (t > abPointA + 0.25) abPointB = t;
+      else { abPointA = null; abPointB = null; }
+    } else {
+      abPointA = null;
+      abPointB = null;
+    }
+    updateABMarkers(dur);
+    updateABButton();
+  }
+
+  btnABLoop.addEventListener('click', cycleABLoop);
+
+  // Clear A-B loop on track change
+  Player.on('trackloaded', () => {
+    abPointA = null;
+    abPointB = null;
+    updateABMarkers(Player.getDuration() || 0);
+    updateABButton();
+  });
+
   Player.on('timeupdate', ({ currentTime, duration }) => {
     timeElapsed.textContent = formatTime(currentTime);
     timeTotal.textContent = formatTime(duration);
     if (duration && !progressBar.matches(':active')) {
       progressBar.value = (currentTime / duration) * 100;
+    }
+    // Update markers if duration just became known
+    if (duration && abMarkerA.classList.contains('hidden') === (abPointA === null) === false) {
+      updateABMarkers(duration);
+    }
+    // A-B loop enforcement
+    if (abPointA !== null && abPointB !== null && currentTime >= abPointB) {
+      Player.seek(abPointA);
     }
   });
 
@@ -990,6 +1110,7 @@
       case 'r': case 'R': Playlist.cycleRepeat(); break;
       case 'f': case 'F': toggleVisualizer(); break;
       case 'e': case 'E': togglePanel(eqSection); break;
+      case 'l': case 'L': cycleABLoop(); break;
       case 'Escape':
         if (!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
         else if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
@@ -1111,6 +1232,26 @@
     try { Storage.saveSetting('defaultSpeed', e.target.value); } catch (_) {}
   });
 
+  // --- Pitch Shift ---
+  const settingPitch = $('#setting-pitch');
+  const pitchValue = $('#pitch-value');
+
+  try {
+    const savedPitch = await Storage.getSetting('pitch');
+    if (savedPitch != null) {
+      settingPitch.value = savedPitch;
+      pitchValue.textContent = savedPitch;
+      Player.setPitch(Number(savedPitch));
+    }
+  } catch (_) {}
+
+  settingPitch.addEventListener('input', (e) => {
+    const val = Number(e.target.value);
+    pitchValue.textContent = val;
+    Player.setPitch(val);
+    try { Storage.saveSetting('pitch', val); } catch (_) {}
+  });
+
   // --- Gapless / Normalization / Remember Position checkboxes ---
   const settingGapless = $('#setting-gapless');
   const settingNormalize = $('#setting-normalize');
@@ -1130,6 +1271,12 @@
   });
   settingNormalize.addEventListener('change', (e) => {
     try { Storage.saveSetting('normalize', e.target.checked); } catch (_) {}
+    const cur = Player.getState().currentTrack;
+    if (e.target.checked) {
+      if (cur) applyTrackNormalization(cur).catch(() => {});
+    } else {
+      Player.setNormalizationGain(1.0);
+    }
   });
   settingRememberPos.addEventListener('change', (e) => {
     try { Storage.saveSetting('rememberPosition', e.target.checked); } catch (_) {}
