@@ -29,6 +29,11 @@
 - Added `normGainNode` to the player audio graph: source → EQ → **normGain** → masterGain → analyser → destination
 - New `Player.setNormalizationGain()` API
 
+**Audit fixes (Phase 7 × Phases 1-6):**
+- Normalization now reuses the Player's existing AudioContext for decoding (avoids hitting the browser's per-origin AudioContext limit after many tracks)
+- Settings export now includes the new `pitch` value so it survives backup/restore
+- A-B marker repositioning simplified — markers now reliably update whenever duration is known and A or B is set (was a convoluted triple-equals chain)
+
 ---
 
 ## v0.7.2 — 2026-04-04

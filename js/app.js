@@ -471,11 +471,10 @@
       try {
         const resp = await fetch(track.url);
         const buf = await resp.arrayBuffer();
-        const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const tmp = new AudioCtx();
-        const decoded = await tmp.decodeAudioData(buf.slice(0));
-        tmp.close && tmp.close();
+        // Reuse the Player's AudioContext rather than creating a new one
+        // (browsers limit AudioContext count).
+        const decodeCtx = Player.getContext();
+        const decoded = await decodeCtx.decodeAudioData(buf);
         // Sample up to first 60s to keep analysis quick.
         const sr = decoded.sampleRate;
         const maxSamples = Math.min(decoded.length, sr * 60);
@@ -603,8 +602,8 @@
     if (duration && !progressBar.matches(':active')) {
       progressBar.value = (currentTime / duration) * 100;
     }
-    // Update markers if duration just became known
-    if (duration && abMarkerA.classList.contains('hidden') === (abPointA === null) === false) {
+    // Keep markers positioned correctly (duration may change as metadata loads)
+    if (duration && (abPointA !== null || abPointB !== null)) {
       updateABMarkers(duration);
     }
     // A-B loop enforcement
@@ -1382,7 +1381,7 @@
   $('#btn-export-settings').addEventListener('click', async () => {
     try {
       const settings = {};
-      for (const key of ['theme', 'accentColor', 'crossfade', 'defaultSpeed', 'gapless', 'normalize', 'rememberPosition', 'volume']) {
+      for (const key of ['theme', 'accentColor', 'crossfade', 'defaultSpeed', 'pitch', 'gapless', 'normalize', 'rememberPosition', 'volume']) {
         settings[key] = await Storage.getSetting(key);
       }
       const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
