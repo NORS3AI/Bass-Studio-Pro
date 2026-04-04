@@ -65,9 +65,13 @@ const Playlist = (() => {
 
   function deletePlaylist(id) {
     const toDelete = playlists.find(p => p.id === id);
-    if (toDelete) toDelete.tracks.forEach(revokeTrackURLs);
+    if (toDelete) {
+      toDelete.tracks.forEach(t => {
+        revokeTrackURLs(t);
+        try { Storage.deleteAudioFile(t.id); } catch (_) {}
+      });
+    }
     playlists = playlists.filter(p => p.id !== id);
-    // Remove from IndexedDB immediately (scheduleSave only saves existing playlists)
     try { Storage.deletePlaylist(id); } catch (_) {}
     if (activePlaylistId === id) {
       activePlaylistId = playlists[0]?.id || null;
@@ -95,7 +99,10 @@ const Playlist = (() => {
   function clearPlaylist(id) {
     const pl = playlists.find(p => p.id === (id || activePlaylistId));
     if (!pl) return;
-    pl.tracks.forEach(revokeTrackURLs);
+    pl.tracks.forEach(t => {
+      revokeTrackURLs(t);
+      try { Storage.deleteAudioFile(t.id); } catch (_) {}
+    });
     pl.tracks = [];
     if (pl.id === activePlaylistId) {
       buildQueue();
@@ -133,6 +140,9 @@ const Playlist = (() => {
         const existing = pl.tracks.find(t =>
           !t.url && t.title === meta.title && t.artist === meta.artist
         );
+
+        const trackId = existing ? existing.id : uid();
+
         if (existing) {
           existing.file = meta.file;
           existing.url = meta.url;
@@ -142,9 +152,12 @@ const Playlist = (() => {
           if (meta.year) existing.year = meta.year;
           if (meta.trackNumber) existing.trackNumber = meta.trackNumber;
         } else {
-          const track = { id: uid(), ...meta };
+          const track = { id: trackId, ...meta };
           pl.tracks.push(track);
         }
+
+        // Persist audio file data to IndexedDB so it survives refresh
+        persistAudioFile(trackId, meta.file, meta.artUrl);
       }
       buildQueue();
       emit('trackschanged', pl);
@@ -154,12 +167,34 @@ const Playlist = (() => {
     }
   }
 
+  /**
+   * Store audio file blob and album art blob in IndexedDB.
+   * Runs in the background — doesn't block track loading.
+   */
+  function persistAudioFile(trackId, file, artUrl) {
+    if (!file) return;
+    // Read the file as a blob (File is already a Blob subclass)
+    const audioBlob = new Blob([file], { type: file.type || 'audio/mpeg' });
+
+    // If there's art, fetch the blob URL to get the art blob
+    if (artUrl) {
+      fetch(artUrl).then(res => res.blob()).then(artBlob => {
+        Storage.saveAudioFile(trackId, audioBlob, artBlob).catch(() => {});
+      }).catch(() => {
+        Storage.saveAudioFile(trackId, audioBlob, null).catch(() => {});
+      });
+    } else {
+      Storage.saveAudioFile(trackId, audioBlob, null).catch(() => {});
+    }
+  }
+
   function removeTrack(trackId) {
     const pl = getActive();
     if (!pl) return;
     const track = pl.tracks.find(t => t.id === trackId);
     if (track) revokeTrackURLs(track);
     pl.tracks = pl.tracks.filter(t => t.id !== trackId);
+    try { Storage.deleteAudioFile(trackId); } catch (_) {}
     buildQueue();
     emit('trackschanged', pl);
     scheduleSave();
@@ -673,7 +708,7 @@ const Playlist = (() => {
 
   /**
    * Restore playlists from IndexedDB on launch.
-   * Tracks will have metadata but no audio data — user must re-add files to play.
+   * Recreates blob URLs from stored audio/art blobs so tracks are playable immediately.
    */
   async function restore() {
     try {
@@ -688,6 +723,23 @@ const Playlist = (() => {
             artUrl: null,
           })),
         }));
+
+        // Restore audio blobs → blob URLs for all tracks
+        for (const pl of playlists) {
+          for (const track of pl.tracks) {
+            try {
+              const stored = await Storage.getAudioFile(track.id);
+              if (stored) {
+                if (stored.audioBlob) {
+                  track.url = URL.createObjectURL(stored.audioBlob);
+                }
+                if (stored.artBlob) {
+                  track.artUrl = URL.createObjectURL(stored.artBlob);
+                }
+              }
+            } catch (_) {}
+          }
+        }
 
         const savedActive = await Storage.getState('activePlaylistId');
         if (savedActive && playlists.find(p => p.id === savedActive)) {

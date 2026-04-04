@@ -1,9 +1,9 @@
 /**
- * storage.js — IndexedDB persistence for playlists, settings, and state
+ * storage.js — IndexedDB persistence for playlists, settings, state, and audio files
  */
 const Storage = (() => {
   const DB_NAME = 'BassStudioPro';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   let db = null;
 
   function open() {
@@ -19,6 +19,9 @@ const Storage = (() => {
         }
         if (!_db.objectStoreNames.contains('state')) {
           _db.createObjectStore('state', { keyPath: 'key' });
+        }
+        if (!_db.objectStoreNames.contains('audiofiles')) {
+          _db.createObjectStore('audiofiles', { keyPath: 'id' });
         }
       };
       req.onsuccess = (e) => { db = e.target.result; resolve(db); };
@@ -81,10 +84,17 @@ const Storage = (() => {
     deletePlaylist: (id) => remove('playlists', id),
     saveState: (key, value) => put('state', { key, value }),
     getState: (key) => get('state', key).then(r => r ? r.value : null),
+
+    // Audio file storage — persists raw audio and art blobs by track ID
+    saveAudioFile: (id, audioBlob, artBlob) => put('audiofiles', { id, audioBlob, artBlob }),
+    getAudioFile: (id) => get('audiofiles', id),
+    deleteAudioFile: (id) => remove('audiofiles', id),
+
     clearAll: () => Promise.all([
       clearStore('playlists'),
       clearStore('settings'),
       clearStore('state'),
+      clearStore('audiofiles'),
     ]),
   };
 })();

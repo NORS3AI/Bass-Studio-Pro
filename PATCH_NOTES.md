@@ -2,6 +2,16 @@
 
 ---
 
+## v0.6.7 — 2026-04-04
+
+### Improvements
+
+- **Audio persists across page refresh**: Audio files and album art are now stored in IndexedDB as blobs. After refreshing the page, all tracks are immediately playable — no need to re-add files
+- Stored audio is cleaned up when tracks or playlists are deleted/cleared
+- "Clear All Data" in Settings also clears stored audio files
+
+---
+
 ## v0.6.6 — 2026-04-04
 
 ### UI Improvements
