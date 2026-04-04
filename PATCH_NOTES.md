@@ -2,6 +2,17 @@
 
 ---
 
+## v0.6.6 — 2026-04-04
+
+### UI Improvements
+
+- **Settings is now a modal popup**: Opens as a centered overlay with backdrop blur, slide-up animation, and close via X / backdrop click / Escape — same style as Patch Notes
+- **Load music moved to top bar**: Open Files and Open Folder buttons are now icon buttons in the top bar (left of Patch Notes), freeing up the main content area for playlists
+- **File loader panel removed**: No more Load Music section taking up screen space. Drag-and-drop still works — drag files onto the playlist area and a drop zone appears
+- **Cleaner layout**: Main content goes straight to the playlist, making better use of limited screen space on mobile
+
+---
+
 ## v0.6.5 — 2026-04-04
 
 ### Bug Fixes

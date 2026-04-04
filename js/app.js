@@ -54,7 +54,7 @@
   const trackArtist    = $('#track-artist');
   const albumArt       = $('#album-art');
   const eqSection      = $('#eq-section');
-  const settingsSection = $('#settings-section');
+  const settingsModal  = $('#settings-modal');
   const patchModal     = $('#patch-notes-modal');
   const vizOverlay     = $('#visualizer-overlay');
   const vizModeLabel   = $('#viz-mode-label');
@@ -78,12 +78,14 @@
     if (files.length) await Playlist.addFiles(files);
   });
 
+  // Drag-and-drop on the whole main area
+  const mainApp = $('#app');
   let dragCounter = 0;
-  dropZone.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-  dropZone.addEventListener('dragleave', () => { dragCounter--; if (dragCounter === 0) dropZone.classList.remove('dragover'); });
-  dropZone.addEventListener('drop', async (e) => {
-    e.preventDefault(); dragCounter = 0; dropZone.classList.remove('dragover');
+  mainApp.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; dropZone.classList.remove('hidden'); dropZone.classList.add('dragover'); });
+  mainApp.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+  mainApp.addEventListener('dragleave', () => { dragCounter--; if (dragCounter === 0) { dropZone.classList.remove('dragover'); dropZone.classList.add('hidden'); } });
+  mainApp.addEventListener('drop', async (e) => {
+    e.preventDefault(); dragCounter = 0; dropZone.classList.remove('dragover'); dropZone.classList.add('hidden');
     const files = await FileLoader.handleDrop(e.dataTransfer);
     if (files.length) await Playlist.addFiles(files);
   });
@@ -508,12 +510,22 @@
 
   function togglePanel(section) {
     const wasVisible = !section.classList.contains('hidden');
-    [eqSection, settingsSection].forEach(s => s.classList.add('hidden'));
+    [eqSection].forEach(s => s.classList.add('hidden'));
     if (!wasVisible) section.classList.remove('hidden');
   }
 
   btnEqToggle.addEventListener('click', () => togglePanel(eqSection));
-  btnSettings.addEventListener('click', () => togglePanel(settingsSection));
+
+  // Settings — modal popup
+  btnSettings.addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+  });
+  $('#btn-settings-close').addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+  });
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.add('hidden');
+  });
 
   // Patch Notes — modal popup
   btnPatchNotes.addEventListener('click', () => {
@@ -873,7 +885,8 @@
       case 'f': case 'F': toggleVisualizer(); break;
       case 'e': case 'E': togglePanel(eqSection); break;
       case 'Escape':
-        if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
+        if (!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
+        else if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
         else if (!vizOverlay.classList.contains('hidden')) closeVisualizer();
         contextMenu.classList.add('hidden');
         break;

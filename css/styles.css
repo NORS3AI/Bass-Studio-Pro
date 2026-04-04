@@ -176,25 +176,21 @@ html, body {
 }
 .panel.hidden { display: none; }
 
-/* ---------- File Loader ---------- */
-.loader-actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.drop-zone {
+/* ---------- Drop Zone (inline overlay) ---------- */
+.drop-zone-inline {
   border: 2px dashed var(--border);
   border-radius: var(--radius);
-  padding: 32px;
+  padding: 24px;
   text-align: center;
   color: var(--text-secondary);
+  font-size: 13px;
   transition: border-color var(--transition), background var(--transition);
 }
-.drop-zone.dragover {
+.drop-zone-inline.dragover {
   border-color: var(--accent);
   background: rgba(108, 92, 231, 0.1);
 }
+.drop-zone-inline.hidden { display: none; }
 
 /* ---------- Playlist ---------- */
 .playlist-header {
@@ -587,27 +583,27 @@ html, body {
 #viz-mode-label { font-size: 13px; color: #ccc; min-width: 120px; text-align: center; }
 
 /* ---------- Settings ---------- */
-#settings-section fieldset {
+.settings-body fieldset {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px;
   margin-bottom: 12px;
 }
-#settings-section legend {
+.settings-body legend {
   font-size: 12px;
   font-weight: 600;
   color: var(--accent);
   padding: 0 6px;
 }
-#settings-section label {
+.settings-body label {
   display: block;
   font-size: 13px;
   color: var(--text-secondary);
   margin: 8px 0 4px;
 }
-#settings-section select,
-#settings-section input[type="color"],
-#settings-section input[type="number"] {
+.settings-body select,
+.settings-body input[type="color"],
+.settings-body input[type="number"] {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   color: var(--text-primary);
