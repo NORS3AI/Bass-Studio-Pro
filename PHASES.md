@@ -128,15 +128,15 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 > **Goal**: Crossfade, gapless, speed, pitch, A-B loop, normalization.
 
 - [ ] **7.1** Crossfade engine — pre-load next track, fade out current + fade in next simultaneously
-- [ ] **7.2** Crossfade duration setting (0–12s slider in Settings)
+- [x] **7.2** Crossfade duration setting (0–12s slider in Settings)
 - [ ] **7.3** Gapless playback — pre-buffer the next track and switch with zero gap
-- [ ] **7.4** Playback speed control (0.5x–2.0x) — button cycles through, or setting sets default
-- [ ] **7.5** Pitch shift independent of speed — semitone slider (-12 to +12)
-- [ ] **7.6** A-B loop — click to set point A, click again to set point B, loop that section
-- [ ] **7.7** A-B loop visual markers on the progress bar
-- [ ] **7.8** Clear A-B loop button
-- [ ] **7.9** Audio normalization — analyze peak/RMS of each track, apply gain correction
-- [ ] **7.10** Resume from last position — save current time to IndexedDB on pause/unload, restore on next launch
+- [x] **7.4** Playback speed control (0.5x–2.0x) — button cycles through, or setting sets default
+- [x] **7.5** Pitch shift independent of speed — semitone slider (-12 to +12)
+- [x] **7.6** A-B loop — click to set point A, click again to set point B, loop that section
+- [x] **7.7** A-B loop visual markers on the progress bar
+- [x] **7.8** Clear A-B loop button
+- [x] **7.9** Audio normalization — analyze peak/RMS of each track, apply gain correction
+- [x] **7.10** Resume from last position — save current time to IndexedDB on pause/unload, restore on next launch
 
 **Definition of done**: Crossfade smoothly blends between tracks. Gapless plays albums seamlessly. Speed/pitch adjustments work independently. A-B loop markers are visible and clearable. Volume stays consistent across loud and quiet tracks.
 
