@@ -543,14 +543,87 @@
   // VISUALIZER
   // ============================================
 
-  function openVisualizer() { vizOverlay.classList.remove('hidden'); Visualizer.start(); vizModeLabel.textContent = Visualizer.getCurrentMode().name; }
-  function closeVisualizer() { vizOverlay.classList.add('hidden'); Visualizer.stop(); }
+  function openVisualizer() {
+    vizOverlay.classList.remove('hidden');
+    Visualizer.start();
+    vizModeLabel.textContent = Visualizer.getCurrentMode().name;
+  }
+  function closeVisualizer() {
+    vizOverlay.classList.add('hidden');
+    vizOverlay.classList.remove('controls-visible');
+    Visualizer.stop();
+  }
   function toggleVisualizer() { vizOverlay.classList.contains('hidden') ? openVisualizer() : closeVisualizer(); }
 
   btnVizToggle.addEventListener('click', toggleVisualizer);
   $('#btn-viz-close').addEventListener('click', closeVisualizer);
-  $('#btn-viz-next').addEventListener('click', () => { vizModeLabel.textContent = Visualizer.nextMode().name; });
-  $('#btn-viz-prev').addEventListener('click', () => { vizModeLabel.textContent = Visualizer.prevMode().name; });
+  $('#btn-viz-next').addEventListener('click', (e) => { e.stopPropagation(); vizModeLabel.textContent = Visualizer.nextMode().name; });
+  $('#btn-viz-prev').addEventListener('click', (e) => { e.stopPropagation(); vizModeLabel.textContent = Visualizer.prevMode().name; });
+
+  // Click/tap canvas to cycle modes (6.11)
+  const vizCanvas = $('#visualizer-canvas');
+  vizCanvas.addEventListener('click', () => {
+    vizModeLabel.textContent = Visualizer.nextMode().name;
+  });
+
+  // Touch: tap shows controls, double-tap cycles mode
+  let vizLastTap = 0;
+  vizCanvas.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - vizLastTap < 300) {
+      // Double tap — cycle mode (handled by click)
+      e.preventDefault();
+    } else {
+      // Single tap — toggle controls visibility on mobile
+      vizOverlay.classList.toggle('controls-visible');
+    }
+    vizLastTap = now;
+  });
+
+  // Swipe down to exit on mobile (6.15)
+  let vizTouchStartY = 0;
+  let vizTouchStartX = 0;
+  vizOverlay.addEventListener('touchstart', (e) => {
+    vizTouchStartY = e.touches[0].clientY;
+    vizTouchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  vizOverlay.addEventListener('touchend', (e) => {
+    if (!e.changedTouches.length) return;
+    const dy = e.changedTouches[0].clientY - vizTouchStartY;
+    const dx = Math.abs(e.changedTouches[0].clientX - vizTouchStartX);
+    if (dy > 100 && dx < 80) closeVisualizer(); // swipe down
+  });
+
+  // Color theme buttons (6.12)
+  const vizThemeBtns = $('#viz-theme-btns');
+  const themeColors = { neon: '#ff00ff', sunset: '#ff6b35', ocean: '#0077b6', monochrome: '#ffffff' };
+  Visualizer.getThemeNames().forEach(({ id, name }) => {
+    const btn = document.createElement('button');
+    btn.title = name;
+    btn.style.background = themeColors[id] || '#888';
+    btn.dataset.theme = id;
+    if (id === 'neon') btn.classList.add('active');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      Visualizer.setTheme(id);
+      vizThemeBtns.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    vizThemeBtns.appendChild(btn);
+  });
+
+  // Custom color pickers (6.13)
+  const vizColorAccent = $('#viz-color-accent');
+  const vizColorSecondary = $('#viz-color-secondary');
+  function applyCustomColors() {
+    Visualizer.setCustomTheme(vizColorAccent.value, vizColorSecondary.value);
+    vizThemeBtns.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  }
+  vizColorAccent.addEventListener('input', applyCustomColors);
+  vizColorSecondary.addEventListener('input', applyCustomColors);
+  // Prevent color picker from cycling modes
+  vizColorAccent.addEventListener('click', (e) => e.stopPropagation());
+  vizColorSecondary.addEventListener('click', (e) => e.stopPropagation());
 
   // ============================================
   // EQ

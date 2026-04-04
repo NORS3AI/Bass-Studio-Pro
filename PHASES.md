@@ -104,21 +104,21 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 6 — Visualizers (v0.7.0)
 > **Goal**: 6 full-screen beat-synced visualizers.
 
-- [ ] **6.1** Frequency Bars — 64 vertical bars, color-mapped by intensity, smooth animation
-- [ ] **6.2** Waveform — oscilloscope-style time-domain wave with accent color
-- [ ] **6.3** Circular Spectrum — 128 radial bars from a center ring, pulses with bass
-- [ ] **6.4** Particle Field — 60+ particles reacting to bass energy (size, speed, opacity)
-- [ ] **6.5** Spectrogram — scrolling heatmap, frequency on Y-axis, time on X-axis
-- [ ] **6.6** Blob — organic shape morphing with bass/treble energy, radial gradient fill
-- [ ] **6.7** Full-screen overlay — dims UI, fills viewport, canvas auto-resizes
-- [ ] **6.8** Beat detection — detect kicks/snares, trigger pulse/flash effects across all modes
-- [ ] **6.9** Visualizer controls overlay (fade in on hover): prev/next mode, mode label, close
-- [ ] **6.10** `F` shortcut opens visualizer, `ESC` closes, `1-6` switches mode directly
-- [ ] **6.11** Click/tap to cycle through modes
-- [ ] **6.12** Color themes: Neon, Sunset, Ocean, Monochrome
-- [ ] **6.13** Custom color theme — user picks accent colors via color picker
-- [ ] **6.14** FPS-aware rendering — detect low frame rate, reduce particle count / bar count
-- [ ] **6.15** Swipe down to exit on mobile
+- [x] **6.1** Frequency Bars — 64 vertical bars, color-mapped by intensity, smooth animation
+- [x] **6.2** Waveform — oscilloscope-style time-domain wave with accent color
+- [x] **6.3** Circular Spectrum — 128 radial bars from a center ring, pulses with bass
+- [x] **6.4** Particle Field — 60+ particles reacting to bass energy (size, speed, opacity)
+- [x] **6.5** Spectrogram — scrolling heatmap, frequency on Y-axis, time on X-axis
+- [x] **6.6** Blob — organic shape morphing with bass/treble energy, radial gradient fill
+- [x] **6.7** Full-screen overlay — dims UI, fills viewport, canvas auto-resizes
+- [x] **6.8** Beat detection — detect kicks/snares, trigger pulse/flash effects across all modes
+- [x] **6.9** Visualizer controls overlay (fade in on hover): prev/next mode, mode label, close
+- [x] **6.10** `F` shortcut opens visualizer, `ESC` closes, `1-6` switches mode directly
+- [x] **6.11** Click/tap to cycle through modes
+- [x] **6.12** Color themes: Neon, Sunset, Ocean, Monochrome
+- [x] **6.13** Custom color theme — user picks accent colors via color picker
+- [x] **6.14** FPS-aware rendering — detect low frame rate, reduce particle count / bar count
+- [x] **6.15** Swipe down to exit on mobile
 
 **Definition of done**: All 6 visualizers render smoothly at 60fps on desktop, degrade gracefully on mobile. Beat detection triggers visible pulses. Color themes work.
 

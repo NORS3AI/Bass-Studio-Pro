@@ -2,6 +2,46 @@
 
 ---
 
+## v0.7.0 — 2026-04-04
+
+### Phase 6 Complete — Visualizers
+
+**6 Beat-Synced Visualizer Modes (6.1–6.6):**
+- **Frequency Bars**: 64 vertical bars with per-bar gradients, rounded tops, and glow on beat hits. Bar count scales with FPS
+- **Waveform**: Oscilloscope-style wave with glow line, mirror reflection, and beat-reactive fill area
+- **Circular Spectrum**: 128 radial bars from a center ring with bass pulse ring, inner glow, and beat-reactive radius
+- **Particle Field**: 80+ persistent particles with physics simulation, bass-reactive size/speed, line connections between nearby particles, and beat impulse explosions
+- **Spectrogram**: Scrolling frequency heatmap colored by the active theme palette instead of hardcoded RGB
+- **Blob**: Organic morphing shape driven by bass, treble, and mid frequencies with outer glow halo, radial gradient fill, and inner flash on beats
+
+**Beat Detection (6.8):**
+- Real-time bass energy analysis across the low 16 frequency bins
+- Dynamic threshold based on rolling 30-frame energy history
+- Beat triggers flash overlays, pulse effects, and impulse forces across all 6 modes
+
+**Color Themes (6.12–6.13):**
+- 4 built-in themes: Neon (magenta/cyan), Sunset (warm oranges/reds), Ocean (cool blues), Monochrome (white/grey)
+- Theme selector buttons in the visualizer controls bar with active state indicator
+- Custom color theme via two color pickers (accent + secondary) — overrides built-in themes
+- All renderers use theme-aware color interpolation for smooth gradients
+
+**Controls & Navigation (6.7, 6.9–6.11, 6.15):**
+- Full-screen dark overlay with auto-resizing canvas
+- Controls bar: fades in on hover (desktop) or tap (mobile), with backdrop blur
+- Click/tap canvas to cycle through modes
+- Swipe down to exit on mobile (100px threshold)
+- `F` opens/closes, `ESC` closes, `1-6` switches modes directly
+- Prev/Next mode buttons with mode label
+
+**FPS-Aware Rendering (6.14):**
+- Real-time FPS tracking with 1-second sample window
+- Below 30 FPS: aggressively reduces particle count and bar count (down to 40% quality)
+- Below 45 FPS: moderately reduces quality
+- Above 55 FPS: gradually restores full quality
+- Smooth quality transitions prevent visual jitter
+
+---
+
 ## v0.6.7 — 2026-04-04
 
 ### Improvements
