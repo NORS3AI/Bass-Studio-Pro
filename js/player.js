@@ -49,6 +49,19 @@ const Player = (() => {
 
     gainNode.gain.value = volume;
 
+    // iOS/Safari: AudioContext starts suspended. Unlock on first user gesture.
+    function unlockAudio() {
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      document.removeEventListener('touchstart', unlockAudio, true);
+      document.removeEventListener('touchend', unlockAudio, true);
+      document.removeEventListener('click', unlockAudio, true);
+    }
+    document.addEventListener('touchstart', unlockAudio, true);
+    document.addEventListener('touchend', unlockAudio, true);
+    document.addEventListener('click', unlockAudio, true);
+
     audioElement.addEventListener('timeupdate', () => {
       emit('timeupdate', {
         currentTime: audioElement.currentTime,
@@ -120,9 +133,10 @@ const Player = (() => {
 
   async function play() {
     if (!currentTrack) return;
-    // iOS Safari requires awaiting resume() before play()
+    // Always attempt resume — must happen before audioElement.play()
+    // Call without await first to keep user gesture context on iOS
     if (ctx.state === 'suspended') {
-      await ctx.resume();
+      ctx.resume();
     }
     try {
       await audioElement.play();

@@ -2,6 +2,14 @@
 
 ---
 
+## v0.5.2 — 2026-04-04
+
+### Bug Fixes
+
+- **No audio on iOS/Safari**: AudioContext was created before any user gesture, leaving it permanently suspended. Added global touch/click unlock handler and synchronous `ctx.resume()` call to ensure Web Audio API output reaches speakers
+
+---
+
 ## v0.5.1 — 2026-04-04
 
 ### Bug Fixes
