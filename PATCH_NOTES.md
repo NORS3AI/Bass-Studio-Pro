@@ -2,6 +2,46 @@
 
 ---
 
+## v0.7.2 — 2026-04-04
+
+### Audit Fixes — Settings, File Loading, Visualizers, EQ
+
+**Visualizer:**
+- **CRITICAL** — Null analyser guard added: visualizer no longer crashes when opened before audio context is initialized
+- **CRITICAL** — Spectrogram DPR bug fixed: scrolling heatmap no longer drifts on high-DPI displays (Retina, mobile)
+- **HIGH** — Touch race condition fixed: swipe-down to close no longer triggers the tap-to-toggle-controls gesture on the same motion
+- **HIGH** — Click-to-cycle vs touch conflict resolved: tapping the canvas on mobile toggles controls, single-tap on desktop cycles modes
+- **MEDIUM** — `hexToRgb()` now validates input and returns safe default (white) for malformed hex strings instead of `NaN` colors
+- **LOW** — Beat detection history now clears on mode/track switch for accurate beat detection per song
+
+**Equalizer:**
+- **CRITICAL** — Preamp now shown in the frequency response curve: the displayed curve finally matches what you hear
+- **CRITICAL** — Dragging a slider now correctly highlights the "Custom" preset button (previously still showed the old preset as active)
+- **CRITICAL** — Custom preset names that conflict with built-in presets are now rejected with a warning, preventing hidden/lost custom presets
+- **HIGH** — Band gain and preamp values clamped to -12..+12 dB on every set, protecting speakers from malformed input
+- **HIGH** — Overwriting an existing custom preset now prompts for confirmation
+- **MEDIUM** — Active preset button is kept in sync via the `presetchanged` event (changing sliders, bypass, or loading presets)
+- **LOW** — EQ curve redraws on window resize so it stays sharp
+
+**Settings:**
+- **MEDIUM** — Accent color now fully propagates: added `--accent-rgb` CSS variable so drop zone, search highlights, and patch notes "Latest" card all follow the chosen accent color
+- **MEDIUM** — Crossfade slider now styled with accent color
+- **MEDIUM** — Sleep timer and position-save intervals cleaned up on page unload and on Clear All Data
+- **LOW** — Accent color hex validated before applying (prevents malformed input from breaking the theme)
+- **LOW** — Checkbox settings (gapless, normalize, remember position) now correctly restore `false` values that were explicitly saved
+- **LOW** — Import settings validates JSON structure and shows success message before reload
+- **LOW** — EQ curve redraws when accent color changes
+
+**File Loading / Import:**
+- **HIGH** — Drop zone reliably hides even when file handling throws an error (try/finally wrapping)
+- **HIGH** — Drag counter clamped to zero — drop zone no longer stuck visible if dragenter/leave get out of sync with nested children
+- **HIGH** — IndexedDB quota errors surface to the user: "Storage full" alert when audio can't be persisted, so you know to clear old data
+- **MEDIUM** — FileReader now has `onerror` and `onabort` handlers — failed playlist imports show a clear error instead of silently hanging
+- **MEDIUM** — Import file input is reset *before* parsing so selecting the same file twice in a row now works
+- **LOW** — Open files/folder buttons catch errors so denied permissions or cancelled pickers no longer throw uncaught exceptions
+
+---
+
 ## v0.7.1 — 2026-04-04
 
 ### Settings Fully Wired

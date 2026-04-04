@@ -61,14 +61,17 @@ const Equalizer = (() => {
   }
 
   function setBand(index, value) {
+    value = Math.max(-12, Math.min(12, Number(value) || 0));
     gains[index] = value;
     if (filters[index] && !bypassed) filters[index].gain.value = value;
+    const wasPreset = activePreset;
     activePreset = 'Custom';
+    if (wasPreset !== 'Custom') emit('presetchanged', 'Custom');
     schedulePersist();
   }
 
   function setPreamp(value) {
-    preamp = value;
+    preamp = Math.max(-12, Math.min(12, Number(value) || 0));
     Player.setPreampGain(bypassed ? 0 : preamp);
     schedulePersist();
   }
@@ -89,9 +92,15 @@ const Equalizer = (() => {
 
   // --- Custom Presets (5.8, 5.9) ---
   function saveCustomPreset(name) {
+    if (!name || !name.trim()) return { ok: false, reason: 'empty' };
+    name = name.trim();
+    if (PRESETS[name]) return { ok: false, reason: 'builtin' };
     customPresets[name] = [...gains];
+    activePreset = name;
     emit('presetschanged');
+    emit('presetchanged', name);
     schedulePersist();
+    return { ok: true };
   }
 
   function deleteCustomPreset(name) {
@@ -184,6 +193,8 @@ const Equalizer = (() => {
         totalGain += response;
       }
 
+      // Add preamp contribution (applies uniformly across all frequencies)
+      if (!bypassed) totalGain += preamp;
       // Clamp to -12..+12
       totalGain = Math.max(-12, Math.min(12, totalGain));
       points.push({ x: freqToX(freq), y: gainToY(totalGain) });

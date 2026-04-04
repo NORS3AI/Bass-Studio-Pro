@@ -69,13 +69,17 @@
   // ============================================
 
   btnOpenFiles.addEventListener('click', async () => {
-    const files = await FileLoader.openFiles();
-    if (files.length) await Playlist.addFiles(files);
+    try {
+      const files = await FileLoader.openFiles();
+      if (files.length) await Playlist.addFiles(files);
+    } catch (err) { console.warn('Open files failed:', err); }
   });
 
   btnOpenFolder.addEventListener('click', async () => {
-    const files = await FileLoader.openFolder();
-    if (files.length) await Playlist.addFiles(files);
+    try {
+      const files = await FileLoader.openFolder();
+      if (files.length) await Playlist.addFiles(files);
+    } catch (err) { console.warn('Open folder failed:', err); }
   });
 
   // Drag-and-drop on the whole main area
@@ -83,11 +87,24 @@
   let dragCounter = 0;
   mainApp.addEventListener('dragenter', (e) => { e.preventDefault(); dragCounter++; dropZone.classList.remove('hidden'); dropZone.classList.add('dragover'); });
   mainApp.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-  mainApp.addEventListener('dragleave', () => { dragCounter--; if (dragCounter === 0) { dropZone.classList.remove('dragover'); dropZone.classList.add('hidden'); } });
+  mainApp.addEventListener('dragleave', () => { dragCounter--; if (dragCounter <= 0) { dragCounter = 0; dropZone.classList.remove('dragover'); dropZone.classList.add('hidden'); } });
   mainApp.addEventListener('drop', async (e) => {
-    e.preventDefault(); dragCounter = 0; dropZone.classList.remove('dragover'); dropZone.classList.add('hidden');
-    const files = await FileLoader.handleDrop(e.dataTransfer);
-    if (files.length) await Playlist.addFiles(files);
+    e.preventDefault();
+    try {
+      const files = await FileLoader.handleDrop(e.dataTransfer);
+      if (files.length) await Playlist.addFiles(files);
+    } catch (err) {
+      console.warn('Drop handling failed:', err);
+    } finally {
+      dragCounter = 0;
+      dropZone.classList.remove('dragover');
+      dropZone.classList.add('hidden');
+    }
+  });
+
+  // Storage full notification
+  Playlist.on('storagefull', () => {
+    alert('Storage full — audio for new tracks cannot be saved. Remove some tracks or clear old data in Settings.');
   });
 
   // ============================================
@@ -190,18 +207,21 @@
   $('#btn-import-playlist').addEventListener('click', () => importInput.click());
   importInput.addEventListener('change', () => {
     const file = importInput.files[0];
+    importInput.value = '';
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const pl = Playlist.importPlaylist(reader.result);
-      if (pl) {
-        Playlist.setActive(pl.id);
-      } else {
-        alert('Invalid playlist file.');
+      try {
+        const pl = Playlist.importPlaylist(reader.result);
+        if (pl) Playlist.setActive(pl.id);
+        else alert('Invalid playlist file.');
+      } catch (err) {
+        alert('Import failed: ' + err.message);
       }
     };
+    reader.onerror = () => alert('Could not read playlist file.');
+    reader.onabort = () => alert('Playlist import was cancelled.');
     reader.readAsText(file);
-    importInput.value = '';
   });
 
   // ============================================
@@ -560,38 +580,37 @@
   $('#btn-viz-next').addEventListener('click', (e) => { e.stopPropagation(); vizModeLabel.textContent = Visualizer.nextMode().name; });
   $('#btn-viz-prev').addEventListener('click', (e) => { e.stopPropagation(); vizModeLabel.textContent = Visualizer.prevMode().name; });
 
-  // Click/tap canvas to cycle modes (6.11)
+  // Click canvas to cycle modes (6.11) — desktop only
   const vizCanvas = $('#visualizer-canvas');
-  vizCanvas.addEventListener('click', () => {
+  let vizWasSwiped = false;
+  let vizTouchHandled = false;
+  vizCanvas.addEventListener('click', (e) => {
+    if (vizWasSwiped || vizTouchHandled) { vizTouchHandled = false; return; }
     vizModeLabel.textContent = Visualizer.nextMode().name;
   });
 
-  // Touch: tap shows controls, double-tap cycles mode
-  let vizLastTap = 0;
-  vizCanvas.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    if (now - vizLastTap < 300) {
-      // Double tap — cycle mode (handled by click)
-      e.preventDefault();
-    } else {
-      // Single tap — toggle controls visibility on mobile
-      vizOverlay.classList.toggle('controls-visible');
-    }
-    vizLastTap = now;
-  });
-
-  // Swipe down to exit on mobile (6.15)
+  // Swipe down to exit on mobile (6.15) + tap-to-toggle-controls
   let vizTouchStartY = 0;
   let vizTouchStartX = 0;
   vizOverlay.addEventListener('touchstart', (e) => {
     vizTouchStartY = e.touches[0].clientY;
     vizTouchStartX = e.touches[0].clientX;
+    vizWasSwiped = false;
   }, { passive: true });
-  vizOverlay.addEventListener('touchend', (e) => {
+  vizCanvas.addEventListener('touchend', (e) => {
     if (!e.changedTouches.length) return;
     const dy = e.changedTouches[0].clientY - vizTouchStartY;
     const dx = Math.abs(e.changedTouches[0].clientX - vizTouchStartX);
-    if (dy > 100 && dx < 80) closeVisualizer(); // swipe down
+    const absDy = Math.abs(dy);
+    vizTouchHandled = true;
+    if (dy > 100 && dx < 80) {
+      vizWasSwiped = true;
+      closeVisualizer();
+    } else if (absDy < 10 && dx < 10) {
+      // Tap: toggle controls visibility on mobile
+      vizOverlay.classList.toggle('controls-visible');
+      e.preventDefault();
+    }
   });
 
   // Color theme buttons (6.12)
@@ -701,11 +720,25 @@
   // Save custom preset (5.8)
   $('#btn-save-preset').addEventListener('click', () => {
     const name = prompt('Preset name:');
-    if (name && name.trim()) {
-      Equalizer.saveCustomPreset(name.trim());
-      renderEQPresetButtons();
-      renderCustomPresetList();
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (Equalizer.getCustomPresetNames().includes(trimmed)) {
+      if (!confirm(`Preset "${trimmed}" exists. Overwrite?`)) return;
     }
+    const result = Equalizer.saveCustomPreset(trimmed);
+    if (!result.ok) {
+      if (result.reason === 'builtin') alert('That name is taken by a built-in preset. Choose another name.');
+      return;
+    }
+    renderEQPresetButtons();
+    renderCustomPresetList();
+  });
+
+  // Re-render preset buttons when active preset changes (e.g. user drags a slider -> Custom)
+  Equalizer.on('presetchanged', () => {
+    eqPresetsContainer.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.textContent === Equalizer.activePreset);
+    });
   });
 
   // Custom preset management (5.9)
@@ -975,6 +1008,7 @@
 
   window.addEventListener('resize', () => {
     if (!vizOverlay.classList.contains('hidden')) Visualizer.resize();
+    Equalizer.drawCurve();
   });
 
   // ============================================
@@ -1007,23 +1041,32 @@
 
   // --- Accent Color ---
   const settingAccent = $('#setting-accent');
+  function applyAccentColor(color) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
+    document.documentElement.style.setProperty('--accent', color);
+    document.documentElement.style.setProperty('--accent-hover', lightenColor(color, 20));
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    document.documentElement.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+  }
   try {
     const savedAccent = await Storage.getSetting('accentColor');
     if (savedAccent) {
       settingAccent.value = savedAccent;
-      document.documentElement.style.setProperty('--accent', savedAccent);
-      document.documentElement.style.setProperty('--accent-hover', lightenColor(savedAccent, 20));
+      applyAccentColor(savedAccent);
     }
   } catch (_) {}
 
   settingAccent.addEventListener('input', (e) => {
     const color = e.target.value;
-    document.documentElement.style.setProperty('--accent', color);
-    document.documentElement.style.setProperty('--accent-hover', lightenColor(color, 20));
+    applyAccentColor(color);
     try { Storage.saveSetting('accentColor', color); } catch (_) {}
+    Equalizer.drawCurve();
   });
 
   function lightenColor(hex, percent) {
+    if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return hex;
     const r = Math.min(255, parseInt(hex.slice(1, 3), 16) + percent);
     const g = Math.min(255, parseInt(hex.slice(3, 5), 16) + percent);
     const b = Math.min(255, parseInt(hex.slice(5, 7), 16) + percent);
@@ -1075,11 +1118,11 @@
 
   try {
     const savedGapless = await Storage.getSetting('gapless');
-    if (savedGapless) settingGapless.checked = true;
+    if (savedGapless !== null) settingGapless.checked = !!savedGapless;
     const savedNormalize = await Storage.getSetting('normalize');
-    if (savedNormalize) settingNormalize.checked = true;
+    if (savedNormalize !== null) settingNormalize.checked = !!savedNormalize;
     const savedRememberPos = await Storage.getSetting('rememberPosition');
-    if (savedRememberPos) settingRememberPos.checked = true;
+    if (savedRememberPos !== null) settingRememberPos.checked = !!savedRememberPos;
   } catch (_) {}
 
   settingGapless.addEventListener('change', (e) => {
@@ -1172,11 +1215,20 @@
   $('#btn-clear-data').addEventListener('click', async () => {
     if (!confirm('Clear all playlists, settings, and stored audio? This cannot be undone.')) return;
     try {
+      clearSleepTimer();
+      if (positionSaveInterval) { clearInterval(positionSaveInterval); positionSaveInterval = null; }
       await Storage.clearAll();
       window.location.reload();
     } catch (err) {
       alert('Error clearing data: ' + err.message);
     }
+  });
+
+  // Cleanup timers on unload
+  window.addEventListener('beforeunload', () => {
+    if (sleepTimerId) { clearTimeout(sleepTimerId); sleepTimerId = null; }
+    if (sleepDisplayId) { clearInterval(sleepDisplayId); sleepDisplayId = null; }
+    if (positionSaveInterval) { clearInterval(positionSaveInterval); positionSaveInterval = null; }
   });
 
   // --- Data: Export Settings ---
@@ -1210,9 +1262,11 @@
       try {
         const text = await input.files[0].text();
         const settings = JSON.parse(text);
+        if (typeof settings !== 'object' || settings === null) throw new Error('Invalid format');
         for (const [key, value] of Object.entries(settings)) {
           if (value != null) await Storage.saveSetting(key, value);
         }
+        alert('Settings imported. Reloading…');
         window.location.reload();
       } catch (err) {
         alert('Import failed: ' + err.message);

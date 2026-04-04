@@ -201,12 +201,14 @@ const Visualizer = (() => {
   }
 
   function getFrequencyData() {
+    if (!analyser) return new Uint8Array(1024);
     const data = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(data);
     return data;
   }
 
   function getTimeDomainData() {
+    if (!analyser) return new Uint8Array(2048);
     const data = new Uint8Array(analyser.fftSize);
     analyser.getByteTimeDomainData(data);
     return data;
@@ -215,6 +217,9 @@ const Visualizer = (() => {
   // --- Color utility ---
 
   function hexToRgb(hex) {
+    if (!hex || typeof hex !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      return { r: 255, g: 255, b: 255 };
+    }
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
@@ -450,7 +455,7 @@ const Visualizer = (() => {
 
     canvasCtx.save();
     canvasCtx.setTransform(1, 0, 0, 1, 0, 0);
-    const shift = 2;
+    const shift = Math.max(2, Math.round(2 * devicePixelRatio));
     if (spectroImageData) {
       canvasCtx.putImageData(spectroImageData, -shift, 0);
     } else {
@@ -539,6 +544,7 @@ const Visualizer = (() => {
     modeIndex = (modeIndex + 1) % MODES.length;
     spectroImageData = null;
     particlesInited = false;
+    beatHistory = [];
     return MODES[modeIndex];
   }
 
@@ -546,6 +552,7 @@ const Visualizer = (() => {
     modeIndex = (modeIndex - 1 + MODES.length) % MODES.length;
     spectroImageData = null;
     particlesInited = false;
+    beatHistory = [];
     return MODES[modeIndex];
   }
 
@@ -554,6 +561,7 @@ const Visualizer = (() => {
       modeIndex = idx;
       spectroImageData = null;
       particlesInited = false;
+      beatHistory = [];
     }
     return MODES[modeIndex];
   }

@@ -12,6 +12,7 @@
   --text-secondary: #9898b0;
   --accent: #6c5ce7;
   --accent-hover: #7f70f0;
+  --accent-rgb: 108, 92, 231;
   --danger: #e74c3c;
   --success: #2ecc71;
   --border: #2a2a40;
@@ -188,7 +189,7 @@ html, body {
 }
 .drop-zone-inline.dragover {
   border-color: var(--accent);
-  background: rgba(108, 92, 231, 0.1);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 .drop-zone-inline.hidden { display: none; }
 
@@ -387,7 +388,7 @@ html, body {
 
 /* ---------- Search Highlight ---------- */
 .search-highlight {
-  background: rgba(108, 92, 231, 0.35);
+  background: rgba(var(--accent-rgb), 0.35);
   color: var(--text-primary);
   border-radius: 2px;
   padding: 0 1px;
@@ -658,6 +659,10 @@ html, body {
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
+.settings-body input[type="range"] {
+  accent-color: var(--accent);
+  vertical-align: middle;
+}
 
 .sleep-timer-options {
   display: flex;
@@ -761,7 +766,7 @@ html, body {
 }
 .pn-version-card.pn-latest {
   border: 1px solid var(--accent);
-  background: rgba(108, 92, 231, 0.06);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 .pn-version-card:not(.pn-latest) {
   border: 1px solid var(--border);

@@ -176,15 +176,24 @@ const Playlist = (() => {
     // Read the file as a blob (File is already a Blob subclass)
     const audioBlob = new Blob([file], { type: file.type || 'audio/mpeg' });
 
+    const onSaveError = (err) => {
+      if (err && (err.name === 'QuotaExceededError' || /quota/i.test(err.message || ''))) {
+        emit('storagefull', { trackId });
+        console.warn('Storage quota exceeded — audio not persisted for track', trackId);
+      } else if (err) {
+        console.warn('Audio persistence failed:', err);
+      }
+    };
+
     // If there's art, fetch the blob URL to get the art blob
     if (artUrl) {
       fetch(artUrl).then(res => res.blob()).then(artBlob => {
-        Storage.saveAudioFile(trackId, audioBlob, artBlob).catch(() => {});
+        Storage.saveAudioFile(trackId, audioBlob, artBlob).catch(onSaveError);
       }).catch(() => {
-        Storage.saveAudioFile(trackId, audioBlob, null).catch(() => {});
+        Storage.saveAudioFile(trackId, audioBlob, null).catch(onSaveError);
       });
     } else {
-      Storage.saveAudioFile(trackId, audioBlob, null).catch(() => {});
+      Storage.saveAudioFile(trackId, audioBlob, null).catch(onSaveError);
     }
   }
 
