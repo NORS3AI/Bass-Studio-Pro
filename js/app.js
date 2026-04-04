@@ -903,6 +903,21 @@
     navigator.mediaSession.setActionHandler('pause', () => Player.pause());
     navigator.mediaSession.setActionHandler('previoustrack', () => Playlist.prev());
     navigator.mediaSession.setActionHandler('nexttrack', () => Playlist.next());
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      Player.seek(Player.getCurrentTime() - (details.seekOffset || 10));
+    });
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      Player.seek(Player.getCurrentTime() + (details.seekOffset || 10));
+    });
+    try {
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        Player.seek(details.seekTime);
+      });
+      navigator.mediaSession.setActionHandler('stop', () => {
+        Player.pause();
+        Player.seek(0);
+      });
+    } catch (_) {} // Not all browsers support these
 
     Player.on('trackloaded', (track) => {
       const artwork = [];
@@ -913,6 +928,19 @@
         title: track.title, artist: track.artist, album: track.album,
         artwork,
       });
+    });
+
+    // Update position state for lock screen / Control Center scrubber
+    Player.on('timeupdate', ({ currentTime, duration }) => {
+      if (duration && navigator.mediaSession.setPositionState) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration,
+            playbackRate: Player.getState().speed || 1,
+            position: Math.min(currentTime, duration),
+          });
+        } catch (_) {}
+      }
     });
   }
 

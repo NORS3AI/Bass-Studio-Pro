@@ -2,6 +2,17 @@
 
 ---
 
+## v0.6.1 — 2026-04-04
+
+### Bug Fixes
+
+- **Background playback on iPad/iOS**: AudioContext now auto-resumes when returning from a background tab or app switch. Music continues playing when you switch apps, use other tabs, or lock the screen
+- **iOS interruption handling**: AudioContext recovers from OS interruptions (phone calls, Siri, notifications)
+- **Lock screen / Control Center**: Added seek forward/backward, seek-to, and position state reporting so the full scrubber and controls work from the lock screen and Control Center on iPad/iOS
+- **Media Session**: Added `stop` action handler for system media controls
+
+---
+
 ## v0.6.0 — 2026-04-04
 
 ### Phase 5 Complete — Equalizer

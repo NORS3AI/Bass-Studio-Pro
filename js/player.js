@@ -62,6 +62,22 @@ const Player = (() => {
     document.addEventListener('touchend', unlockAudio, true);
     document.addEventListener('click', unlockAudio, true);
 
+    // Resume AudioContext when returning from background tab / app switch (iOS/iPad)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && ctx.state === 'suspended' && isPlaying) {
+        ctx.resume();
+      }
+    });
+
+    // Also handle iOS interruptions (phone calls, Siri, etc.)
+    ctx.addEventListener('statechange', () => {
+      if (ctx.state === 'interrupted') {
+        // iOS-specific: context was interrupted by OS
+        // Will auto-resume when interruption ends, but we try explicitly
+        ctx.resume().catch(() => {});
+      }
+    });
+
     audioElement.addEventListener('timeupdate', () => {
       emit('timeupdate', {
         currentTime: audioElement.currentTime,
