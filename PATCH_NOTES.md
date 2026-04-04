@@ -2,6 +2,19 @@
 
 ---
 
+## v0.3.1 — 2026-04-04
+
+### Phase 2 Audit — Bug Fixes
+
+- **CRITICAL**: Fixed deleted playlists reappearing after reload (were not removed from IndexedDB)
+- **CRITICAL**: Fixed "Add to Queue" being a no-op (all track indices already present in queue)
+- **HIGH**: Fixed `originalOrder` becoming stale when tracks added/removed during shuffle mode
+- **HIGH**: Fixed context menu overflowing off-screen near viewport edges
+- **HIGH**: Bumped service worker cache version to v0.3.1 (was stuck at v0.1.0)
+- **MEDIUM**: Fixed repeat-one mode reloading entire track instead of seeking to start
+
+---
+
 ## v0.3.0 — 2026-04-04
 
 ### Phase 2 Complete — Playlist Management

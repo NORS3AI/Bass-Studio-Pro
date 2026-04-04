@@ -52,6 +52,8 @@ const Playlist = (() => {
 
   function deletePlaylist(id) {
     playlists = playlists.filter(p => p.id !== id);
+    // Remove from IndexedDB immediately (scheduleSave only saves existing playlists)
+    try { Storage.deletePlaylist(id); } catch (_) {}
     if (activePlaylistId === id) {
       activePlaylistId = playlists[0]?.id || null;
       buildQueue();
@@ -158,6 +160,8 @@ const Playlist = (() => {
     queue = pl.tracks.map((_, i) => i);
 
     if (shuffleOn) {
+      // Invalidate originalOrder since track list may have changed
+      originalOrder = null;
       shuffleArray(queue);
       if (currentTrackId) {
         const playingIdx = pl.tracks.findIndex(t => t.id === currentTrackId);
@@ -190,9 +194,15 @@ const Playlist = (() => {
       originalOrder = queue.slice();
     }
     shuffleOn = !shuffleOn;
-    if (!shuffleOn && originalOrder) {
-      // Un-shuffle: restore original order
-      queue = originalOrder;
+    if (!shuffleOn) {
+      if (originalOrder) {
+        // Un-shuffle: restore original order
+        queue = originalOrder;
+      } else {
+        // originalOrder was invalidated (tracks changed during shuffle) — rebuild sequential
+        const pl = getActive();
+        queue = pl ? pl.tracks.map((_, i) => i) : [];
+      }
       originalOrder = null;
       if (currentTrackId) {
         const pl = getActive();
@@ -239,6 +249,7 @@ const Playlist = (() => {
 
   /**
    * Append a track to the end of the queue.
+   * Allows duplicates — the track will play again at the end.
    */
   function addToQueue(trackId) {
     const pl = getActive();
@@ -246,10 +257,7 @@ const Playlist = (() => {
     const trackIdx = pl.tracks.findIndex(t => t.id === trackId);
     if (trackIdx < 0) return;
 
-    // Only add if not already in queue
-    if (!queue.includes(trackIdx)) {
-      queue.push(trackIdx);
-    }
+    queue.push(trackIdx);
   }
 
   // ============================================
@@ -280,9 +288,9 @@ const Playlist = (() => {
     if (!pl || queue.length === 0) return;
 
     if (repeatMode === 'one') {
-      const trackIndex = queue[currentQueuePos];
-      const track = pl.tracks[trackIndex];
-      emit('playtrack', { track, index: trackIndex });
+      // Seek to start instead of re-loading the track
+      Player.seek(0);
+      Player.play();
       return;
     }
 

@@ -258,9 +258,14 @@
       li.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         contextTrackId = track.id;
-        contextMenu.style.left = e.clientX + 'px';
-        contextMenu.style.top = e.clientY + 'px';
         contextMenu.classList.remove('hidden');
+        // Clamp to viewport so the menu doesn't overflow off-screen
+        const menuW = contextMenu.offsetWidth;
+        const menuH = contextMenu.offsetHeight;
+        const x = Math.min(e.clientX, window.innerWidth - menuW - 4);
+        const y = Math.min(e.clientY, window.innerHeight - menuH - 4);
+        contextMenu.style.left = Math.max(0, x) + 'px';
+        contextMenu.style.top = Math.max(0, y) + 'px';
       });
 
       // Drag-and-drop reorder (2.7)
