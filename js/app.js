@@ -55,7 +55,7 @@
   const albumArt       = $('#album-art');
   const eqSection      = $('#eq-section');
   const settingsSection = $('#settings-section');
-  const patchSection   = $('#patch-notes-section');
+  const patchModal     = $('#patch-notes-modal');
   const vizOverlay     = $('#visualizer-overlay');
   const vizModeLabel   = $('#viz-mode-label');
   const contextMenu    = $('#track-context-menu');
@@ -508,17 +508,23 @@
 
   function togglePanel(section) {
     const wasVisible = !section.classList.contains('hidden');
-    [eqSection, settingsSection, patchSection].forEach(s => s.classList.add('hidden'));
+    [eqSection, settingsSection].forEach(s => s.classList.add('hidden'));
     if (!wasVisible) section.classList.remove('hidden');
   }
 
   btnEqToggle.addEventListener('click', () => togglePanel(eqSection));
   btnSettings.addEventListener('click', () => togglePanel(settingsSection));
+
+  // Patch Notes — modal popup
   btnPatchNotes.addEventListener('click', () => {
-    togglePanel(patchSection);
-    if (!patchSection.classList.contains('hidden')) {
-      PatchNotes.render($('#patch-notes-content'));
-    }
+    patchModal.classList.remove('hidden');
+    PatchNotes.render($('#patch-notes-content'));
+  });
+  $('#btn-patch-close').addEventListener('click', () => {
+    patchModal.classList.add('hidden');
+  });
+  patchModal.addEventListener('click', (e) => {
+    if (e.target === patchModal) patchModal.classList.add('hidden');
   });
 
   // ============================================
@@ -867,7 +873,8 @@
       case 'f': case 'F': toggleVisualizer(); break;
       case 'e': case 'E': togglePanel(eqSection); break;
       case 'Escape':
-        if (!vizOverlay.classList.contains('hidden')) closeVisualizer();
+        if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
+        else if (!vizOverlay.classList.contains('hidden')) closeVisualizer();
         contextMenu.classList.add('hidden');
         break;
       case '/': e.preventDefault(); searchInput.focus(); break;

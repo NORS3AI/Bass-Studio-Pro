@@ -209,15 +209,21 @@
       </fieldset>
     </section>
 
-    <!-- PATCH NOTES PANEL -->
-    <section id="patch-notes-section" class="panel hidden">
-      <h2>Patch Notes</h2>
-      <div id="patch-notes-content" class="patch-notes-content">
+  </main>
+
+  <!-- PATCH NOTES MODAL (overlay, not inline panel) -->
+  <div id="patch-notes-modal" class="modal-overlay hidden" role="dialog" aria-label="Patch Notes" aria-modal="true">
+    <div class="modal-container patch-notes-modal">
+      <div class="modal-header">
+        <h2>What's New</h2>
+        <span id="patch-notes-version" class="modal-version-badge"></span>
+        <button id="btn-patch-close" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="patch-notes-content" class="modal-body">
         <!-- Rendered from PATCH_NOTES.md by js/patch-notes.js -->
       </div>
-    </section>
-
-  </main>
+    </div>
+  </div>
 
   <!-- ============================================ -->
   <!-- NOW PLAYING BAR (bottom)                     -->

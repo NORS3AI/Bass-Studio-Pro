@@ -1,64 +1,163 @@
 /**
- * patch-notes.js — Fetch and render PATCH_NOTES.md in the app
+ * patch-notes.js — Fetch, parse, and render PATCH_NOTES.md as a modal
  */
 const PatchNotes = (() => {
   const SEEN_KEY = 'patchNotesSeen';
   let content = '';
   let latestVersion = '';
+  let versions = []; // Parsed version entries
 
   async function load() {
     try {
       const res = await fetch('PATCH_NOTES.md');
       if (!res.ok) return;
       content = await res.text();
-      latestVersion = extractLatestVersion(content);
+      versions = parseVersions(content);
+      latestVersion = versions.length > 0 ? versions[0].version : '';
       checkBadge();
-    } catch (_) {
-      // Offline or fetch failed — content stays empty
-    }
+    } catch (_) {}
   }
 
-  function extractLatestVersion(md) {
-    const match = md.match(/^## (v[\d.]+)/m);
-    return match ? match[1] : '';
+  /**
+   * Parse PATCH_NOTES.md into structured version entries.
+   * Each entry: { version, date, sections: [{ title, items[] }] }
+   */
+  function parseVersions(md) {
+    const result = [];
+    // Split by version headings (## v0.x.x — date)
+    const blocks = md.split(/^## /gm).slice(1);
+
+    for (const block of blocks) {
+      const lines = block.trim().split('\n');
+      const headerMatch = lines[0].match(/^(v[\d.]+)\s*[\u2014—-]\s*(.+)/);
+      if (!headerMatch) continue;
+
+      const entry = {
+        version: headerMatch[1],
+        date: headerMatch[2].trim(),
+        sections: [],
+      };
+
+      let currentSection = null;
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Section heading (### ...)
+        const sectionMatch = line.match(/^### (.+)/);
+        if (sectionMatch) {
+          currentSection = { title: sectionMatch[1], items: [] };
+          entry.sections.push(currentSection);
+          continue;
+        }
+
+        // Bullet item (- **bold**: text OR - text)
+        const itemMatch = line.match(/^- (.+)/);
+        if (itemMatch && currentSection) {
+          currentSection.items.push(itemMatch[1]);
+          continue;
+        }
+
+        // Skip horizontal rules / blank lines
+      }
+
+      // If no sections found, create a default one
+      if (entry.sections.length === 0) {
+        entry.sections.push({ title: 'Changes', items: [] });
+      }
+
+      result.push(entry);
+    }
+
+    return result;
   }
 
   function render(container) {
-    // Strip the top-level heading (already shown in the panel's <h2>)
-    const stripped = content.replace(/^# .+\n*/m, '');
-    container.innerHTML = markdownToHTML(stripped);
+    const versionBadge = document.getElementById('patch-notes-version');
+    if (versionBadge && latestVersion) {
+      versionBadge.textContent = latestVersion;
+    }
+
+    container.innerHTML = '';
+
+    if (versions.length === 0) {
+      container.innerHTML = '<p class="pn-empty">No patch notes available.</p>';
+      markSeen();
+      return;
+    }
+
+    versions.forEach((entry, idx) => {
+      const card = document.createElement('div');
+      card.className = 'pn-version-card' + (idx === 0 ? ' pn-latest' : '');
+
+      // Version header (clickable to collapse)
+      const header = document.createElement('button');
+      header.className = 'pn-version-header';
+      header.setAttribute('aria-expanded', idx === 0 ? 'true' : 'false');
+      header.innerHTML = `
+        <div class="pn-version-info">
+          <span class="pn-version-tag">${escapeHTML(entry.version)}</span>
+          ${idx === 0 ? '<span class="pn-latest-badge">Latest</span>' : ''}
+          <span class="pn-version-date">${escapeHTML(entry.date)}</span>
+        </div>
+        <span class="pn-chevron">${idx === 0 ? '\u25B2' : '\u25BC'}</span>
+      `;
+
+      const body = document.createElement('div');
+      body.className = 'pn-version-body';
+      if (idx !== 0) body.classList.add('collapsed');
+
+      header.addEventListener('click', () => {
+        const isCollapsed = body.classList.contains('collapsed');
+        body.classList.toggle('collapsed');
+        header.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+        header.querySelector('.pn-chevron').textContent = isCollapsed ? '\u25B2' : '\u25BC';
+      });
+
+      // Render sections
+      entry.sections.forEach(section => {
+        const sectionEl = document.createElement('div');
+        sectionEl.className = 'pn-section';
+
+        const sTitle = document.createElement('h4');
+        sTitle.className = 'pn-section-title';
+        sTitle.textContent = section.title;
+        sectionEl.appendChild(sTitle);
+
+        const ul = document.createElement('ul');
+        ul.className = 'pn-items';
+        section.items.forEach(item => {
+          const li = document.createElement('li');
+          // Parse **bold**: rest pattern
+          li.innerHTML = formatItem(item);
+          ul.appendChild(li);
+        });
+        sectionEl.appendChild(ul);
+        body.appendChild(sectionEl);
+      });
+
+      card.appendChild(header);
+      card.appendChild(body);
+      container.appendChild(card);
+    });
+
     markSeen();
   }
 
   /**
-   * Minimal markdown to HTML converter.
-   * Escapes HTML first to prevent XSS, then applies markdown transformations.
+   * Format a single changelog item.
+   * Handles **bold** and `code` inline formatting.
    */
-  function markdownToHTML(md) {
-    // Escape HTML entities FIRST to prevent injection
-    const escaped = md
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-
-    // Now apply markdown transforms on the safe text
-    let html = escaped
-      .replace(/^### (.+)$/gm, '<h4>$1</h4>')
-      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
-      .replace(/^# (.+)$/gm, '<h2>$1</h2>')
-      .replace(/^---$/gm, '<hr>')
+  function formatItem(text) {
+    return escapeHTML(text)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/^- (.+)$/gm, '<li>$1</li>');
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+  }
 
-    // Wrap consecutive <li> blocks in <ul>
-    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
-
-    // Clean up whitespace
-    html = html.replace(/\n\n+/g, '<br>');
-    html = html.replace(/\n/g, '');
-
-    return html;
+  function escapeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 
   function checkBadge() {

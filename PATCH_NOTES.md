@@ -2,6 +2,19 @@
 
 ---
 
+## v0.6.3 — 2026-04-04
+
+### Improvements
+
+- **Patch Notes redesigned**: Completely rebuilt as a modern modal popup with backdrop blur, slide-up animation, and collapsible version cards
+- Each version entry has a clickable header showing version tag, date, and "Latest" badge for the newest release
+- Older versions collapse by default — tap to expand any version
+- Section headings (Bug Fixes, Improvements, etc.) styled with accent-colored labels
+- Bullet items use clean dot markers with bold feature names
+- Closes via X button, clicking the backdrop, or pressing Escape
+
+---
+
 ## v0.6.2 — 2026-04-04
 
 ### Bug Fixes
