@@ -2,6 +2,17 @@
 
 ---
 
+## v0.6.4 — 2026-04-04
+
+### Improvements
+
+- **Background playback on iPad/iOS**: Music now keeps playing when you switch tabs, apps, or lock the screen. Uses a backup audio element that bypasses Web Audio API when the page goes to background, then seamlessly syncs back when you return (EQ kicks back in automatically)
+- **No more auto-resume**: Music no longer auto-starts when returning to the tab. If you paused before leaving, it stays paused. If it was playing, it continues from the exact position
+- **Background controls**: Play/pause, skip, and seek all work from the lock screen and Control Center while the app is backgrounded
+- Track-end auto-advance works even while backgrounded — the next song starts automatically
+
+---
+
 ## v0.6.3 — 2026-04-04
 
 ### Improvements

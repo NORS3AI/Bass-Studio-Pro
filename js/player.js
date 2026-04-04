@@ -3,8 +3,11 @@
  *
  * Audio graph: source → eqFilters[] → gainNode → analyser → destination
  *
- * IMPORTANT: MediaElementSource is created ONCE in init() and reused.
- * Calling createMediaElementSource() more than once per element throws.
+ * Background playback (iOS/iPad): When the page goes to background, iOS
+ * suspends the AudioContext, killing all Web Audio output. To keep music
+ * playing, we spin up a backup <audio> element that plays the same blob
+ * URL directly (bypassing Web Audio). When the page returns, we sync
+ * position back and resume the Web Audio path with EQ.
  */
 const Player = (() => {
   let ctx = null;
@@ -13,6 +16,10 @@ const Player = (() => {
   let sourceNode = null;
   let audioElement = null;
   let eqFilters = [];
+
+  // Background playback
+  let backupAudio = null;
+  let wasPlayingBeforeHide = false;
 
   // State
   let currentTrack = null;
@@ -62,31 +69,117 @@ const Player = (() => {
     document.addEventListener('touchend', unlockAudio, true);
     document.addEventListener('click', unlockAudio, true);
 
-    // Resume AudioContext when returning from background tab / app switch (iOS/iPad)
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && ctx.state === 'suspended' && isPlaying) {
-        ctx.resume();
-      }
-    });
+    // Background/foreground handling for iOS
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Also handle iOS interruptions (phone calls, Siri, etc.)
+    // Handle iOS interruptions (phone calls, Siri, etc.)
     ctx.addEventListener('statechange', () => {
       if (ctx.state === 'interrupted') {
-        // iOS-specific: context was interrupted by OS
-        // Will auto-resume when interruption ends, but we try explicitly
         ctx.resume().catch(() => {});
       }
     });
 
     audioElement.addEventListener('timeupdate', () => {
+      // Don't emit timeupdate if backup is active (backup handles its own)
+      if (backupAudio) return;
       emit('timeupdate', {
         currentTime: audioElement.currentTime,
         duration: audioElement.duration || 0,
       });
     });
-    audioElement.addEventListener('ended', () => emit('ended'));
-    audioElement.addEventListener('play', () => { isPlaying = true; emit('statechange', 'playing'); });
-    audioElement.addEventListener('pause', () => { isPlaying = false; emit('statechange', 'paused'); });
+    audioElement.addEventListener('ended', () => {
+      if (!backupAudio) emit('ended');
+    });
+    audioElement.addEventListener('play', () => {
+      if (!backupAudio) { isPlaying = true; emit('statechange', 'playing'); }
+    });
+    audioElement.addEventListener('pause', () => {
+      if (!backupAudio) { isPlaying = false; emit('statechange', 'paused'); }
+    });
+  }
+
+  /**
+   * Handle page visibility changes for background playback on iOS.
+   *
+   * Going to background: Spin up a backup audio element that plays
+   * the same source directly (no Web Audio) so iOS doesn't kill audio.
+   *
+   * Coming back: Sync position from backup, kill backup, resume Web Audio.
+   */
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      // Page going to background
+      wasPlayingBeforeHide = isPlaying;
+      if (isPlaying && currentTrack && currentTrack.url) {
+        startBackupAudio();
+      }
+    } else {
+      // Page returning to foreground
+      if (backupAudio) {
+        stopBackupAudio();
+      }
+      // Resume AudioContext (may have been suspended by OS)
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+    }
+  }
+
+  function startBackupAudio() {
+    try {
+      backupAudio = new Audio();
+      backupAudio.src = audioElement.src;
+      backupAudio.currentTime = audioElement.currentTime;
+      backupAudio.volume = isMuted ? 0 : volume;
+      backupAudio.playbackRate = speed;
+
+      // When backup track ends, advance to next
+      backupAudio.addEventListener('ended', () => {
+        emit('ended');
+      });
+
+      // Keep emitting timeupdate from backup
+      backupAudio.addEventListener('timeupdate', () => {
+        emit('timeupdate', {
+          currentTime: backupAudio.currentTime,
+          duration: backupAudio.duration || 0,
+        });
+      });
+
+      backupAudio.play().catch(() => {
+        // If backup fails to play, clean up
+        backupAudio = null;
+      });
+
+      // Pause main element so it doesn't consume resources
+      audioElement.pause();
+    } catch (_) {
+      backupAudio = null;
+    }
+  }
+
+  function stopBackupAudio() {
+    if (!backupAudio) return;
+
+    const backupTime = backupAudio.currentTime;
+    const backupWasPlaying = !backupAudio.paused;
+
+    // Stop backup
+    backupAudio.pause();
+    backupAudio.removeAttribute('src');
+    backupAudio.load();
+    backupAudio = null;
+
+    // Sync main element to where backup left off
+    if (audioElement.src) {
+      audioElement.currentTime = backupTime;
+      if (backupWasPlaying) {
+        // Resume through Web Audio path
+        isPlaying = true;
+        emit('statechange', 'playing');
+        audioElement.play().catch(() => {});
+      }
+    }
   }
 
   /**
@@ -119,6 +212,14 @@ const Player = (() => {
    * Returns a Promise that resolves when the track is ready to play.
    */
   function loadTrack(track) {
+    // Kill backup if it exists
+    if (backupAudio) {
+      backupAudio.pause();
+      backupAudio.removeAttribute('src');
+      backupAudio.load();
+      backupAudio = null;
+    }
+
     // Pause current playback to prevent AbortError on src change
     if (!audioElement.paused) {
       audioElement.pause();
@@ -150,14 +251,12 @@ const Player = (() => {
   async function play() {
     if (!currentTrack) return;
     // Always attempt resume — must happen before audioElement.play()
-    // Call without await first to keep user gesture context on iOS
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
     try {
       await audioElement.play();
     } catch (err) {
-      // Autoplay blocked or AbortError from rapid track switching — not fatal
       if (err.name !== 'AbortError') {
         emit('error', { message: 'Playback failed', error: err });
       }
@@ -165,22 +264,45 @@ const Player = (() => {
   }
 
   function pause() {
+    // If backup is playing in background, pause it too
+    if (backupAudio) {
+      backupAudio.pause();
+      isPlaying = false;
+      emit('statechange', 'paused');
+    }
     audioElement.pause();
   }
 
   function togglePlay() {
     if (!currentTrack) return;
+    if (backupAudio) {
+      // Handle toggle while in background
+      if (backupAudio.paused) {
+        backupAudio.play().catch(() => {});
+        isPlaying = true;
+        emit('statechange', 'playing');
+      } else {
+        backupAudio.pause();
+        isPlaying = false;
+        emit('statechange', 'paused');
+      }
+      return;
+    }
     isPlaying ? pause() : play();
   }
 
   function seek(time) {
-    if (!audioElement.duration) return;
-    audioElement.currentTime = Math.max(0, Math.min(time, audioElement.duration));
+    const dur = audioElement.duration || (backupAudio ? backupAudio.duration : 0);
+    if (!dur) return;
+    const t = Math.max(0, Math.min(time, dur));
+    audioElement.currentTime = t;
+    if (backupAudio) backupAudio.currentTime = t;
   }
 
   function setVolume(v) {
     volume = Math.max(0, Math.min(1, v));
     if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
+    if (backupAudio) backupAudio.volume = isMuted ? 0 : volume;
     emit('volumechange', volume);
   }
 
@@ -191,12 +313,14 @@ const Player = (() => {
   function toggleMute() {
     isMuted = !isMuted;
     if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
+    if (backupAudio) backupAudio.volume = isMuted ? 0 : volume;
     emit('mutechange', isMuted);
   }
 
   function setSpeed(s) {
     speed = s;
     if (audioElement) audioElement.playbackRate = speed;
+    if (backupAudio) backupAudio.playbackRate = speed;
     emit('speedchange', speed);
   }
 
@@ -205,13 +329,8 @@ const Player = (() => {
     if (sourceNode) connectGraph();
   }
 
-  /**
-   * Apply preamp gain offset. Adjusts the master gain node.
-   * @param {number} db — preamp in dB (-12 to +12)
-   */
   function setPreampGain(db) {
     if (!gainNode) return;
-    // Convert dB to linear gain, layered on top of volume
     const linear = Math.pow(10, db / 20);
     gainNode.gain.value = isMuted ? 0 : volume * linear;
   }
@@ -225,10 +344,12 @@ const Player = (() => {
   }
 
   function getCurrentTime() {
+    if (backupAudio) return backupAudio.currentTime;
     return audioElement ? audioElement.currentTime : 0;
   }
 
   function getDuration() {
+    if (backupAudio) return backupAudio.duration || 0;
     return audioElement ? audioElement.duration || 0 : 0;
   }
 
