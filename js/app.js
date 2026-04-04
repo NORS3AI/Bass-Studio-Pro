@@ -219,6 +219,14 @@
     '</svg>'
   );
 
+  function highlightText(text, query) {
+    if (!query) return escapeHTML(text);
+    const escaped = escapeHTML(text);
+    const q = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(${q})`, 'gi');
+    return escaped.replace(re, '<mark class="search-highlight">$1</mark>');
+  }
+
   function renderTracks(tracks) {
     trackList.innerHTML = '';
 
@@ -230,6 +238,7 @@
     const currentId = Playlist.getCurrentTrackId();
     const pl = Playlist.getActive();
     const fullTracks = pl ? pl.tracks : [];
+    const query = searchInput.value.trim();
 
     tracks.forEach((track) => {
       const realIndex = fullTracks.indexOf(track);
@@ -242,12 +251,16 @@
       li.draggable = true;
       if (track.id === currentId) li.classList.add('active');
 
+      const titleHTML = highlightText(track.title, query);
+      const artistHTML = highlightText(track.artist, query);
+      const albumHTML = track.album && track.album !== 'Unknown Album' ? highlightText(track.album, query) : '';
+
       li.innerHTML = `
         <span class="track-number" title="Drag to reorder">${displayNum}</span>
         <img class="track-art-thumb" src="${escapeAttr(artSrc)}" alt="" loading="lazy">
         <div class="track-info">
-          <span class="track-name">${escapeHTML(track.title)}</span>
-          <span class="track-artist-line">${escapeHTML(track.artist)}${track.album && track.album !== 'Unknown Album' ? ' \u2022 ' + escapeHTML(track.album) : ''}</span>
+          <span class="track-name">${titleHTML}</span>
+          <span class="track-artist-line">${artistHTML}${albumHTML ? ' \u2022 ' + albumHTML : ''}</span>
         </div>
         <span class="track-duration">${formatTime(track.duration)}</span>
         <span class="track-fav">${Playlist.isFavorite(track.id) ? '\u2605' : '\u2606'}</span>
@@ -640,6 +653,87 @@
     btnSortDir.title = sortAscending ? 'Ascending' : 'Descending';
     refreshTrackView();
   });
+
+  // ============================================
+  // SMART PLAYLISTS (4.5, 4.7, 4.8)
+  // ============================================
+
+  const smartTrackList = $('#smart-track-list');
+  const smartTabs = $$('.smart-tab');
+  let activeSmartTab = 'favorites';
+
+  smartTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      smartTabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeSmartTab = btn.dataset.smart;
+      renderSmartTracks();
+    });
+  });
+
+  function getSmartTracks() {
+    switch (activeSmartTab) {
+      case 'favorites': return Playlist.getFavorites();
+      case 'recent':    return Playlist.getRecentlyPlayed();
+      case 'most':      return Playlist.getMostPlayed();
+      default:          return [];
+    }
+  }
+
+  function renderSmartTracks() {
+    const tracks = getSmartTracks();
+    smartTrackList.innerHTML = '';
+
+    if (tracks.length === 0) {
+      smartTrackList.innerHTML = `<li class="empty-state">No ${activeSmartTab === 'favorites' ? 'favorites' : activeSmartTab === 'recent' ? 'recently played tracks' : 'play history'} yet</li>`;
+      return;
+    }
+
+    const currentId = Playlist.getCurrentTrackId();
+
+    tracks.forEach((track) => {
+      const artSrc = track.artUrl || PLACEHOLDER_ART;
+      const li = document.createElement('li');
+      li.dataset.id = track.id;
+      if (track.id === currentId) li.classList.add('active');
+
+      let extraInfo = '';
+      if (activeSmartTab === 'most') {
+        const count = Playlist.getPlayCount(track.id);
+        extraInfo = `<span class="smart-play-count">${count} play${count !== 1 ? 's' : ''}</span>`;
+      }
+
+      li.innerHTML = `
+        <img class="track-art-thumb" src="${escapeAttr(artSrc)}" alt="" loading="lazy">
+        <div class="track-info">
+          <span class="track-name">${escapeHTML(track.title)}</span>
+          <span class="track-artist-line">${escapeHTML(track.artist)}${track.album && track.album !== 'Unknown Album' ? ' \u2022 ' + escapeHTML(track.album) : ''}</span>
+        </div>
+        <span class="track-duration">${formatTime(track.duration)}</span>
+        ${extraInfo}
+        <span class="track-fav">${Playlist.isFavorite(track.id) ? '\u2605' : '\u2606'}</span>
+      `;
+
+      li.addEventListener('click', (e) => {
+        if (e.target.classList.contains('track-fav')) return;
+        Playlist.playTrackById(track.id);
+      });
+
+      li.querySelector('.track-fav').addEventListener('click', (e) => {
+        e.stopPropagation();
+        Playlist.toggleFavorite(track.id);
+      });
+
+      smartTrackList.appendChild(li);
+    });
+  }
+
+  // Re-render smart playlists when relevant data changes
+  Playlist.on('favoriteschanged', renderSmartTracks);
+  Playlist.on('playtrack', () => setTimeout(renderSmartTracks, 100));
+
+  // Initial render
+  renderSmartTracks();
 
   // ============================================
   // KEYBOARD SHORTCUTS

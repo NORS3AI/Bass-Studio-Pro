@@ -68,14 +68,14 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 4 — Search & Favorites (v0.5.0)
 > **Goal**: Find tracks fast and mark the ones you love.
 
-- [ ] **4.1** Real-time search input — filters track list as you type (title, artist, album)
-- [ ] **4.2** Search highlights matching text in results
-- [ ] **4.3** `/` keyboard shortcut focuses the search bar
-- [ ] **4.4** Star/unstar any track (toggle heart/star icon)
-- [ ] **4.5** Dedicated "Favorites" auto-playlist — always available, auto-populated
-- [ ] **4.6** Persist favorites in IndexedDB across sessions
-- [ ] **4.7** "Recently Played" auto-playlist — last 50 tracks played
-- [ ] **4.8** "Most Played" auto-playlist — sorted by play count
+- [x] **4.1** Real-time search input — filters track list as you type (title, artist, album)
+- [x] **4.2** Search highlights matching text in results
+- [x] **4.3** `/` keyboard shortcut focuses the search bar
+- [x] **4.4** Star/unstar any track (toggle heart/star icon)
+- [x] **4.5** Dedicated "Favorites" auto-playlist — always available, auto-populated
+- [x] **4.6** Persist favorites in IndexedDB across sessions
+- [x] **4.7** "Recently Played" auto-playlist — last 50 tracks played
+- [x] **4.8** "Most Played" auto-playlist — sorted by play count
 
 **Definition of done**: You can instantly search across hundreds of tracks, star your favorites, and access smart auto-playlists.
 

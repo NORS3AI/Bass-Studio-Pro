@@ -93,6 +93,17 @@
       <input type="file" id="import-playlist-input" accept=".json" hidden>
     </section>
 
+    <!-- SMART PLAYLISTS (4.5, 4.7, 4.8) -->
+    <section id="smart-playlists-section" class="panel">
+      <h2>Smart Playlists</h2>
+      <div class="smart-playlist-tabs">
+        <button id="btn-smart-favorites" class="btn-small smart-tab active" data-smart="favorites">Favorites</button>
+        <button id="btn-smart-recent" class="btn-small smart-tab" data-smart="recent">Recently Played</button>
+        <button id="btn-smart-most" class="btn-small smart-tab" data-smart="most">Most Played</button>
+      </div>
+      <ul id="smart-track-list" role="list" aria-label="Smart playlist tracks"></ul>
+    </section>
+
     <!-- TRACK DETAIL TOOLTIP (hidden, positioned via JS) -->
     <div id="track-detail-tooltip" class="track-tooltip hidden" role="tooltip"></div>
 

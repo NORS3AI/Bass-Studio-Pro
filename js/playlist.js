@@ -13,6 +13,11 @@ const Playlist = (() => {
   let loading = false;         // Lock to prevent concurrent addFiles
   let originalOrder = null;    // Saved pre-shuffle order for un-shuffle
 
+  // Smart playlist data (4.7, 4.8)
+  let recentlyPlayed = [];     // Array of { trackId, playlistId, timestamp }
+  let playCounts = {};          // { trackId: count }
+  const MAX_RECENT = 50;
+
   const listeners = {};
   function on(event, fn) { (listeners[event] = listeners[event] || []).push(fn); }
   function emit(event, data) { (listeners[event] || []).forEach(fn => fn(data)); }
@@ -286,6 +291,7 @@ const Playlist = (() => {
 
     const track = pl.tracks[trackIndex];
     currentTrackId = track.id;
+    recordPlay(track.id, pl.id);
     emit('playtrack', { track, index: trackIndex });
   }
 
@@ -355,6 +361,93 @@ const Playlist = (() => {
 
   function getCurrentTrackId() {
     return currentTrackId;
+  }
+
+  // ============================================
+  // SMART PLAYLISTS (4.5, 4.7, 4.8)
+  // ============================================
+
+  /**
+   * Record that a track was played. Updates recently played + play counts.
+   */
+  function recordPlay(trackId, playlistId) {
+    // Recently played (4.7)
+    recentlyPlayed = recentlyPlayed.filter(r => r.trackId !== trackId);
+    recentlyPlayed.unshift({ trackId, playlistId, timestamp: Date.now() });
+    if (recentlyPlayed.length > MAX_RECENT) recentlyPlayed.length = MAX_RECENT;
+
+    // Play counts (4.8)
+    playCounts[trackId] = (playCounts[trackId] || 0) + 1;
+
+    scheduleSmartSave();
+  }
+
+  /**
+   * Find a track object by ID across all playlists.
+   */
+  function findTrackById(trackId) {
+    for (const pl of playlists) {
+      const t = pl.tracks.find(tr => tr.id === trackId);
+      if (t) return t;
+    }
+    return null;
+  }
+
+  /**
+   * Get all favorited tracks across all playlists (4.5).
+   */
+  function getFavorites() {
+    const result = [];
+    for (const pl of playlists) {
+      for (const t of pl.tracks) {
+        if (favorites.has(t.id)) result.push(t);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get recently played tracks (4.7). Returns track objects (most recent first).
+   */
+  function getRecentlyPlayed() {
+    const result = [];
+    for (const entry of recentlyPlayed) {
+      const track = findTrackById(entry.trackId);
+      if (track) result.push(track);
+    }
+    return result;
+  }
+
+  /**
+   * Get most played tracks (4.8). Returns track objects sorted by play count desc.
+   */
+  function getMostPlayed() {
+    const entries = Object.entries(playCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, MAX_RECENT);
+    const result = [];
+    for (const [trackId] of entries) {
+      const track = findTrackById(trackId);
+      if (track) result.push(track);
+    }
+    return result;
+  }
+
+  function getPlayCount(trackId) {
+    return playCounts[trackId] || 0;
+  }
+
+  let smartSaveTimer = null;
+  function scheduleSmartSave() {
+    if (smartSaveTimer) clearTimeout(smartSaveTimer);
+    smartSaveTimer = setTimeout(persistSmartData, 500);
+  }
+
+  async function persistSmartData() {
+    try {
+      await Storage.saveState('recentlyPlayed', recentlyPlayed);
+      await Storage.saveState('playCounts', playCounts);
+    } catch (_) {}
   }
 
   // ============================================
@@ -561,6 +654,12 @@ const Playlist = (() => {
           favorites = new Set(savedFavs);
         }
 
+        // Restore smart playlist data (4.7, 4.8)
+        const savedRecent = await Storage.getState('recentlyPlayed');
+        if (Array.isArray(savedRecent)) recentlyPlayed = savedRecent;
+        const savedCounts = await Storage.getState('playCounts');
+        if (savedCounts && typeof savedCounts === 'object') playCounts = savedCounts;
+
         buildQueue();
         emit('playlistschanged', playlists);
         emit('activechanged', getActive());
@@ -576,6 +675,7 @@ const Playlist = (() => {
     playIndex, playTrackById, next, prev,
     search, filterBy, getUniqueValues, sortTracks, getCurrentTrackId,
     toggleFavorite, isFavorite,
+    getFavorites, getRecentlyPlayed, getMostPlayed, getPlayCount, findTrackById,
     exportPlaylist, importPlaylist,
     restore,
     get playlists() { return playlists; },

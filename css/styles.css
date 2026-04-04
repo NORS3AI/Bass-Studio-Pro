@@ -381,6 +381,71 @@ html, body {
   max-width: 150px;
 }
 
+/* ---------- Search Highlight ---------- */
+.search-highlight {
+  background: rgba(108, 92, 231, 0.35);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+#track-list li.active .search-highlight {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* ---------- Smart Playlists ---------- */
+.smart-playlist-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.smart-tab {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.smart-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.smart-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+#smart-track-list {
+  list-style: none;
+  max-height: 250px;
+  overflow-y: auto;
+}
+#smart-track-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition);
+  user-select: none;
+}
+#smart-track-list li:hover { background: var(--bg-hover); }
+#smart-track-list li.active { background: var(--accent); color: #fff; }
+#smart-track-list li.active .track-duration,
+#smart-track-list li.active .track-artist-line,
+#smart-track-list li.active .smart-play-count { color: rgba(255,255,255,0.7); }
+
+.smart-play-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
 /* ---------- Equalizer ---------- */
 .eq-presets {
   display: flex;

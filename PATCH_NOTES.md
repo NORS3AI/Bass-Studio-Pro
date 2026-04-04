@@ -2,6 +2,32 @@
 
 ---
 
+## v0.5.0 — 2026-04-04
+
+### Phase 4 Complete — Search & Favorites
+
+**Search Highlighting (4.2):**
+- Matching text in track titles, artists, and albums is highlighted with accent-colored `<mark>` tags as you type
+- Highlights are visible on both normal and active (playing) tracks
+- Regex special characters in search queries are safely escaped
+
+**Smart Playlists (4.5, 4.7, 4.8):**
+- New "Smart Playlists" section with tabbed interface: Favorites, Recently Played, Most Played
+- **Favorites** tab shows all starred tracks collected across all playlists
+- **Recently Played** tab shows the last 50 tracks you played (most recent first), persisted in IndexedDB
+- **Most Played** tab shows tracks ranked by play count with count badges
+- Smart playlists update in real time as you play tracks and toggle favorites
+- Click any smart playlist track to play it; star icon toggles favorites inline
+- Smart playlist data (recently played list, play counts) persists across sessions
+
+**Previously Completed (from earlier phases):**
+- 4.1: Real-time search filtering (done in Phase 3)
+- 4.3: `/` keyboard shortcut to focus search bar (done in Phase 1)
+- 4.4: Star/unstar tracks with toggle icon (done in Phase 2)
+- 4.6: Favorites persist in IndexedDB (done in Phase 2)
+
+---
+
 ## v0.4.1 — 2026-04-04
 
 ### Phase 3 Audit — Bug Fixes
