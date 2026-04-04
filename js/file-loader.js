@@ -148,45 +148,67 @@ const FileLoader = (() => {
 
   /**
    * Extract metadata from an audio file.
-   * Returns { title, artist, album, duration, file, url }
+   * Returns { title, artist, album, year, genre, trackNumber, duration, artUrl, file, url, addedAt }
    *
-   * Creates a blob URL for playback. The temp Audio element used for
-   * duration extraction is cleaned up to avoid resource leaks.
+   * Uses ID3Parser for MP3 metadata + album art, then falls back to
+   * Audio element for duration. Creates blob URLs for playback and art.
    */
-  function extractMetadata(file) {
+  async function extractMetadata(file) {
+    const url = URL.createObjectURL(file);
+    const fileTitle = file.name.replace(AUDIO_EXTENSIONS, '');
+
+    // Parse ID3 tags (works best for MP3, but won't crash on others)
+    let tags = { title: null, artist: null, album: null, year: null, genre: null, trackNumber: null, picture: null };
+    try {
+      tags = await ID3Parser.parse(file);
+    } catch (_) {}
+
+    // Build album art URL from embedded picture
+    let artUrl = null;
+    if (tags.picture && tags.picture.data && tags.picture.data.length > 0) {
+      const blob = new Blob([tags.picture.data], { type: tags.picture.mime || 'image/jpeg' });
+      artUrl = URL.createObjectURL(blob);
+    }
+
+    // Get duration from Audio element
+    const duration = await getDuration(url);
+
+    return {
+      title: tags.title || fileTitle,
+      artist: tags.artist || 'Unknown Artist',
+      album: tags.album || 'Unknown Album',
+      year: tags.year || null,
+      genre: tags.genre || null,
+      trackNumber: tags.trackNumber || null,
+      duration,
+      artUrl,
+      file,
+      url,
+      addedAt: Date.now(),
+    };
+  }
+
+  /**
+   * Get audio duration via a temporary Audio element.
+   */
+  function getDuration(url) {
     return new Promise((resolve) => {
-      const url = URL.createObjectURL(file);
       const audio = new Audio();
       audio.preload = 'metadata';
 
       const cleanup = () => {
-        // Release the temp audio element's hold on the media resource
         audio.removeAttribute('src');
         audio.load();
       };
 
       audio.onloadedmetadata = () => {
-        const duration = audio.duration;
+        const dur = audio.duration;
         cleanup();
-        resolve({
-          title: file.name.replace(AUDIO_EXTENSIONS, ''),
-          artist: 'Unknown Artist',
-          album: 'Unknown Album',
-          duration,
-          file,
-          url,
-        });
+        resolve(dur);
       };
       audio.onerror = () => {
         cleanup();
-        resolve({
-          title: file.name.replace(AUDIO_EXTENSIONS, ''),
-          artist: 'Unknown Artist',
-          album: 'Unknown Album',
-          duration: 0,
-          file,
-          url,
-        });
+        resolve(0);
       };
       audio.src = url;
     });

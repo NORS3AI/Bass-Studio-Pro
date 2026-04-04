@@ -49,17 +49,17 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 3 — Metadata & Album Art (v0.4.0)
 > **Goal**: Read ID3 tags and display rich track info.
 
-- [ ] **3.1** Integrate a lightweight ID3 parser (jsmediatags or custom) — extract title, artist, album, year, genre, track number
-- [ ] **3.2** Use parsed metadata as track display name instead of filename
-- [ ] **3.3** Extract embedded album art (APIC frame) and display as thumbnail in the track list
-- [ ] **3.4** Show album art in the Now Playing bar
-- [ ] **3.5** Fallback placeholder art when no embedded art exists
-- [ ] **3.6** Display track metadata in a detail tooltip or expandable row
-- [ ] **3.7** Media Session API — show title + album art on lock screen / OS notification area
-- [ ] **3.8** Filter tracks by genre from metadata
-- [ ] **3.9** Filter tracks by artist
-- [ ] **3.10** Filter tracks by album
-- [ ] **3.11** Sort by: title, artist, album, duration, date added
+- [x] **3.1** Integrate a lightweight ID3 parser (jsmediatags or custom) — extract title, artist, album, year, genre, track number
+- [x] **3.2** Use parsed metadata as track display name instead of filename
+- [x] **3.3** Extract embedded album art (APIC frame) and display as thumbnail in the track list
+- [x] **3.4** Show album art in the Now Playing bar
+- [x] **3.5** Fallback placeholder art when no embedded art exists
+- [x] **3.6** Display track metadata in a detail tooltip or expandable row
+- [x] **3.7** Media Session API — show title + album art on lock screen / OS notification area
+- [x] **3.8** Filter tracks by genre from metadata
+- [x] **3.9** Filter tracks by artist
+- [x] **3.10** Filter tracks by album
+- [x] **3.11** Sort by: title, artist, album, duration, date added
 
 **Definition of done**: Loaded tracks show real titles/artists/album art. Lock screen shows current track info. You can filter and sort by any metadata field.
 

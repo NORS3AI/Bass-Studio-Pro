@@ -121,11 +121,13 @@
   Playlist.on('playlistschanged', () => renderPlaylistSelector());
   Playlist.on('activechanged', (pl) => {
     renderPlaylistSelector();
+    populateFilters();
     renderTracks(pl ? pl.tracks : []);
   });
   Playlist.on('trackschanged', (pl) => {
-    renderPlaylistSelector(); // Update track count
-    renderTracks(pl.tracks);
+    renderPlaylistSelector();
+    populateFilters();
+    refreshTrackView();
   });
 
   // ============================================
@@ -204,6 +206,17 @@
   // ============================================
 
   let contextTrackId = null; // Track ID for context menu actions
+  const trackTooltip = $('#track-detail-tooltip');
+  let tooltipTimeout = null;
+
+  // Placeholder SVG data URL for tracks with no album art
+  const PLACEHOLDER_ART = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">' +
+    '<rect width="48" height="48" rx="4" fill="%231a1a2e"/>' +
+    '<circle cx="24" cy="24" r="10" stroke="%236c5ce7" stroke-width="2" fill="none"/>' +
+    '<circle cx="24" cy="24" r="3" fill="%236c5ce7"/>' +
+    '</svg>'
+  );
 
   function renderTracks(tracks) {
     trackList.innerHTML = '';
@@ -220,6 +233,7 @@
     tracks.forEach((track) => {
       const realIndex = fullTracks.indexOf(track);
       const displayNum = realIndex >= 0 ? realIndex + 1 : '?';
+      const artSrc = track.artUrl || PLACEHOLDER_ART;
 
       const li = document.createElement('li');
       li.dataset.id = track.id;
@@ -229,7 +243,11 @@
 
       li.innerHTML = `
         <span class="track-number" title="Drag to reorder">${displayNum}</span>
-        <span class="track-name">${escapeHTML(track.title)}</span>
+        <img class="track-art-thumb" src="${escapeAttr(artSrc)}" alt="" loading="lazy">
+        <div class="track-info">
+          <span class="track-name">${escapeHTML(track.title)}</span>
+          <span class="track-artist-line">${escapeHTML(track.artist)}${track.album && track.album !== 'Unknown Album' ? ' \u2022 ' + escapeHTML(track.album) : ''}</span>
+        </div>
         <span class="track-duration">${formatTime(track.duration)}</span>
         <span class="track-fav">${Playlist.isFavorite(track.id) ? '\u2605' : '\u2606'}</span>
         <span class="track-remove" title="Remove">\u2715</span>
@@ -238,7 +256,23 @@
       // Click to play
       li.addEventListener('click', (e) => {
         if (e.target.classList.contains('track-fav') ||
-            e.target.classList.contains('track-remove')) return;
+            e.target.classList.contains('track-remove') ||
+            e.target.classList.contains('track-art-thumb')) return;
+        Playlist.playTrackById(track.id);
+      });
+
+      // Hover on thumbnail → show detail tooltip (3.6)
+      const thumb = li.querySelector('.track-art-thumb');
+      thumb.addEventListener('mouseenter', (e) => {
+        tooltipTimeout = setTimeout(() => showTrackTooltip(track, e), 400);
+      });
+      thumb.addEventListener('mouseleave', () => {
+        clearTimeout(tooltipTimeout);
+        trackTooltip.classList.add('hidden');
+      });
+      // Click thumbnail to play
+      thumb.addEventListener('click', (e) => {
+        e.stopPropagation();
         Playlist.playTrackById(track.id);
       });
 
@@ -259,7 +293,6 @@
         e.preventDefault();
         contextTrackId = track.id;
         contextMenu.classList.remove('hidden');
-        // Clamp to viewport so the menu doesn't overflow off-screen
         const menuW = contextMenu.offsetWidth;
         const menuH = contextMenu.offsetHeight;
         const x = Math.min(e.clientX, window.innerWidth - menuW - 4);
@@ -300,6 +333,32 @@
     });
   }
 
+  // ============================================
+  // TRACK DETAIL TOOLTIP (3.6)
+  // ============================================
+
+  function showTrackTooltip(track, event) {
+    const lines = [
+      `<strong>${escapeHTML(track.title)}</strong>`,
+      `Artist: ${escapeHTML(track.artist)}`,
+      `Album: ${escapeHTML(track.album)}`,
+    ];
+    if (track.year) lines.push(`Year: ${escapeHTML(track.year)}`);
+    if (track.genre) lines.push(`Genre: ${escapeHTML(track.genre)}`);
+    if (track.trackNumber) lines.push(`Track #: ${escapeHTML(track.trackNumber)}`);
+    lines.push(`Duration: ${formatTime(track.duration)}`);
+
+    trackTooltip.innerHTML = lines.join('<br>');
+    trackTooltip.classList.remove('hidden');
+
+    const ttW = trackTooltip.offsetWidth;
+    const ttH = trackTooltip.offsetHeight;
+    const x = Math.min(event.clientX + 12, window.innerWidth - ttW - 8);
+    const y = Math.min(event.clientY + 12, window.innerHeight - ttH - 8);
+    trackTooltip.style.left = Math.max(0, x) + 'px';
+    trackTooltip.style.top = Math.max(0, y) + 'px';
+  }
+
   // Close context menu on click elsewhere
   document.addEventListener('click', () => {
     contextMenu.classList.add('hidden');
@@ -330,10 +389,7 @@
   });
 
   function renderCurrentTracks() {
-    const pl = Playlist.getActive();
-    if (!pl) return;
-    const query = searchInput.value;
-    renderTracks(query ? Playlist.search(query) : pl.tracks);
+    refreshTrackView();
   }
 
   // ============================================
@@ -346,7 +402,17 @@
 
     trackTitle.textContent = track.title;
     trackArtist.textContent = track.artist;
-    albumArt.style.display = 'none';
+
+    // Album art in Now Playing bar (3.4, 3.5)
+    if (track.artUrl) {
+      albumArt.src = track.artUrl;
+      albumArt.style.display = '';
+      albumArt.removeAttribute('hidden');
+    } else {
+      albumArt.src = PLACEHOLDER_ART;
+      albumArt.style.display = '';
+      albumArt.removeAttribute('hidden');
+    }
 
     btnFavorite.innerHTML = Playlist.isFavorite(track.id) ? '&#x2605;' : '&#x2606;';
 
@@ -488,14 +554,83 @@
   }
 
   // ============================================
-  // SEARCH
+  // SEARCH, FILTER & SORT (3.8–3.11)
   // ============================================
 
-  searchInput.addEventListener('input', () => {
-    const results = searchInput.value
-      ? Playlist.search(searchInput.value)
-      : (Playlist.getActive()?.tracks || []);
-    renderTracks(results);
+  const filterGenre  = $('#filter-genre');
+  const filterArtist = $('#filter-artist');
+  const filterAlbum  = $('#filter-album');
+  const sortBy       = $('#sort-by');
+  const btnSortDir   = $('#btn-sort-dir');
+  let sortAscending  = true;
+
+  /**
+   * Get the currently visible tracks after applying search, filters, and sort.
+   */
+  function getVisibleTracks() {
+    const pl = Playlist.getActive();
+    if (!pl) return [];
+    let tracks = pl.tracks;
+
+    // Search filter
+    const query = searchInput.value;
+    if (query) tracks = Playlist.search(query);
+
+    // Metadata filters (3.8–3.10)
+    const genre = filterGenre.value;
+    if (genre) tracks = tracks.filter(t => (t.genre || '') === genre);
+    const artist = filterArtist.value;
+    if (artist) tracks = tracks.filter(t => (t.artist || '') === artist);
+    const album = filterAlbum.value;
+    if (album) tracks = tracks.filter(t => (t.album || '') === album);
+
+    // Sort (3.11)
+    const sortKey = sortBy.value;
+    if (sortKey) tracks = Playlist.sortTracks(tracks, sortKey, sortAscending);
+
+    return tracks;
+  }
+
+  function refreshTrackView() {
+    renderTracks(getVisibleTracks());
+  }
+
+  /**
+   * Populate filter dropdowns with unique values from the active playlist.
+   */
+  function populateFilters() {
+    populateFilterSelect(filterGenre, 'genre', 'All Genres');
+    populateFilterSelect(filterArtist, 'artist', 'All Artists');
+    populateFilterSelect(filterAlbum, 'album', 'All Albums');
+  }
+
+  function populateFilterSelect(select, field, defaultLabel) {
+    const current = select.value;
+    select.innerHTML = '';
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = defaultLabel;
+    select.appendChild(opt);
+
+    Playlist.getUniqueValues(field).forEach(val => {
+      const o = document.createElement('option');
+      o.value = val;
+      o.textContent = val;
+      if (val === current) o.selected = true;
+      select.appendChild(o);
+    });
+  }
+
+  searchInput.addEventListener('input', refreshTrackView);
+  filterGenre.addEventListener('change', refreshTrackView);
+  filterArtist.addEventListener('change', refreshTrackView);
+  filterAlbum.addEventListener('change', refreshTrackView);
+  sortBy.addEventListener('change', refreshTrackView);
+  btnSortDir.addEventListener('click', () => {
+    sortAscending = !sortAscending;
+    btnSortDir.textContent = sortAscending ? '\u2191' : '\u2193';
+    btnSortDir.title = sortAscending ? 'Ascending' : 'Descending';
+    refreshTrackView();
   });
 
   // ============================================
@@ -581,8 +716,13 @@
     navigator.mediaSession.setActionHandler('nexttrack', () => Playlist.next());
 
     Player.on('trackloaded', (track) => {
+      const artwork = [];
+      if (track.artUrl) {
+        artwork.push({ src: track.artUrl, type: 'image/jpeg' });
+      }
       navigator.mediaSession.metadata = new MediaMetadata({
         title: track.title, artist: track.artist, album: track.album,
+        artwork,
       });
     });
   }
@@ -592,6 +732,7 @@
   // ============================================
 
   renderPlaylistSelector();
+  populateFilters();
   const activePl = Playlist.getActive();
   if (activePl) renderTracks(activePl.tracks);
 
@@ -610,5 +751,9 @@
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function escapeAttr(str) {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 })();

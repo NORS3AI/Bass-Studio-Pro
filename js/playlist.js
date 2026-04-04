@@ -355,8 +355,62 @@ const Playlist = (() => {
     return pl.tracks.filter(t =>
       (t.title || '').toLowerCase().includes(q) ||
       (t.artist || '').toLowerCase().includes(q) ||
-      (t.album || '').toLowerCase().includes(q)
+      (t.album || '').toLowerCase().includes(q) ||
+      (t.genre || '').toLowerCase().includes(q)
     );
+  }
+
+  // ============================================
+  // FILTER & SORT (3.8–3.11)
+  // ============================================
+
+  /**
+   * Filter active playlist by a metadata field value.
+   * @param {'genre'|'artist'|'album'} field
+   * @param {string} value — exact match (case-insensitive)
+   */
+  function filterBy(field, value) {
+    const pl = getActive();
+    if (!pl) return [];
+    const v = value.toLowerCase();
+    return pl.tracks.filter(t => (t[field] || '').toLowerCase() === v);
+  }
+
+  /**
+   * Get unique values for a metadata field in the active playlist.
+   * Useful for populating filter dropdowns.
+   */
+  function getUniqueValues(field) {
+    const pl = getActive();
+    if (!pl) return [];
+    const values = new Set();
+    pl.tracks.forEach(t => {
+      const val = t[field];
+      if (val && val !== 'Unknown Artist' && val !== 'Unknown Album') {
+        values.add(val);
+      }
+    });
+    return [...values].sort((a, b) => a.localeCompare(b));
+  }
+
+  /**
+   * Sort a tracks array by the given key.
+   * Returns a new sorted array (does not mutate the playlist).
+   * @param {Array} tracks — array of track objects
+   * @param {'title'|'artist'|'album'|'duration'|'addedAt'} key
+   * @param {boolean} ascending
+   */
+  function sortTracks(tracks, key, ascending) {
+    if (ascending === undefined) ascending = true;
+    return [...tracks].sort((a, b) => {
+      let va = a[key], vb = b[key];
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va == null) va = '';
+      if (vb == null) vb = '';
+      let cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return ascending ? cmp : -cmp;
+    });
   }
 
   // ============================================
@@ -369,7 +423,9 @@ const Playlist = (() => {
     const data = JSON.stringify({
       name: pl.name,
       tracks: pl.tracks.map(t => ({
-        title: t.title, artist: t.artist, album: t.album, duration: t.duration,
+        title: t.title, artist: t.artist, album: t.album,
+        year: t.year, genre: t.genre, trackNumber: t.trackNumber,
+        duration: t.duration,
       })),
     }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
@@ -401,9 +457,14 @@ const Playlist = (() => {
           title: t.title || 'Unknown',
           artist: t.artist || 'Unknown Artist',
           album: t.album || 'Unknown Album',
+          year: t.year || null,
+          genre: t.genre || null,
+          trackNumber: t.trackNumber || null,
           duration: t.duration || 0,
+          artUrl: null,
           file: null,
           url: null,
+          addedAt: Date.now(),
         })),
       };
       playlists.push(pl);
@@ -441,8 +502,12 @@ const Playlist = (() => {
             title: t.title,
             artist: t.artist,
             album: t.album,
+            year: t.year || null,
+            genre: t.genre || null,
+            trackNumber: t.trackNumber || null,
             duration: t.duration,
-            // file and url are session-only — cannot persist blob URLs
+            addedAt: t.addedAt || null,
+            // file, url, artUrl are session-only — cannot persist blob URLs
           })),
         });
       }
@@ -467,6 +532,7 @@ const Playlist = (() => {
             ...t,
             file: null,
             url: null,
+            artUrl: null,
           })),
         }));
 
@@ -495,7 +561,7 @@ const Playlist = (() => {
     addFiles, removeTrack, moveTrack,
     toggleShuffle, cycleRepeat, playNext, addToQueue,
     playIndex, playTrackById, next, prev,
-    search, getCurrentTrackId,
+    search, filterBy, getUniqueValues, sortTracks, getCurrentTrackId,
     toggleFavorite, isFavorite,
     exportPlaylist, importPlaylist,
     restore,

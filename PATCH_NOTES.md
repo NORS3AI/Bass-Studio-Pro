@@ -2,6 +2,41 @@
 
 ---
 
+## v0.4.0 — 2026-04-04
+
+### Phase 3 Complete — Metadata & Album Art
+
+**ID3 Tag Parsing (3.1–3.2):**
+- Custom zero-dependency ID3v1 + ID3v2.3/2.4 parser (`js/id3-parser.js`)
+- Extracts title, artist, album, year, genre, track number from MP3 files
+- Parsed metadata displayed as track name instead of filename
+- ID3v1 fallback for older files missing ID3v2 tags
+
+**Album Art (3.3–3.5):**
+- Embedded APIC frame extracted and displayed as thumbnail in track list
+- Album art shown in the Now Playing bar
+- SVG placeholder art (vinyl record icon) when no embedded art exists
+- Art blob URLs created per-track, session-only
+
+**Track Detail Tooltip (3.6):**
+- Hover over track thumbnail to see full metadata (title, artist, album, year, genre, track #, duration)
+- Tooltip auto-positions to stay within viewport
+
+**Media Session (3.7):**
+- Lock screen / OS notification area now shows album art alongside title and artist
+
+**Metadata Filters (3.8–3.10):**
+- Filter by genre, artist, or album via dropdown selects
+- Dropdowns auto-populate with unique values from the active playlist
+- Filters combine with search for compound queries
+
+**Sort (3.11):**
+- Sort by title, artist, album, duration, or date added
+- Toggle ascending/descending with sort direction button
+- Sort applies on top of search and filters
+
+---
+
 ## v0.3.1 — 2026-04-04
 
 ### Phase 2 Audit — Bug Fixes

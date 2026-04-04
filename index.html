@@ -66,12 +66,35 @@
           <button id="btn-export-playlist" class="btn-small" aria-label="Export Playlist">Export</button>
           <button id="btn-import-playlist" class="btn-small" aria-label="Import Playlist">Import</button>
         </div>
+        <div class="playlist-filters">
+          <select id="filter-genre" aria-label="Filter by genre">
+            <option value="">All Genres</option>
+          </select>
+          <select id="filter-artist" aria-label="Filter by artist">
+            <option value="">All Artists</option>
+          </select>
+          <select id="filter-album" aria-label="Filter by album">
+            <option value="">All Albums</option>
+          </select>
+          <select id="sort-by" aria-label="Sort tracks">
+            <option value="">Default Order</option>
+            <option value="title">Title</option>
+            <option value="artist">Artist</option>
+            <option value="album">Album</option>
+            <option value="duration">Duration</option>
+            <option value="addedAt">Date Added</option>
+          </select>
+          <button id="btn-sort-dir" class="btn-small" aria-label="Sort direction" title="Sort direction">&uarr;</button>
+        </div>
       </div>
       <ul id="track-list" role="list" aria-label="Track list">
         <!-- Tracks rendered by js/playlist.js -->
       </ul>
       <input type="file" id="import-playlist-input" accept=".json" hidden>
     </section>
+
+    <!-- TRACK DETAIL TOOLTIP (hidden, positioned via JS) -->
+    <div id="track-detail-tooltip" class="track-tooltip hidden" role="tooltip"></div>
 
     <!-- TRACK CONTEXT MENU (hidden, positioned via JS) -->
     <div id="track-context-menu" class="context-menu hidden" role="menu">
@@ -221,6 +244,7 @@
   <!-- SCRIPTS                                      -->
   <!-- ============================================ -->
   <script src="js/storage.js"></script>
+  <script src="js/id3-parser.js"></script>
   <script src="js/file-loader.js"></script>
   <script src="js/player.js"></script>
   <script src="js/playlist.js"></script>

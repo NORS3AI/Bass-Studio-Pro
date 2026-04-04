@@ -275,9 +275,31 @@ html, body {
   cursor: grab;
 }
 .track-number:active { cursor: grabbing; }
-.track-name { flex: 1; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.track-duration { font-size: 12px; color: var(--text-secondary); }
-.track-fav { cursor: pointer; font-size: 14px; }
+/* Track art thumbnail */
+.track-art-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background: var(--bg-hover);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Track info (title + artist line) */
+.track-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.track-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.track-artist-line { font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#track-list li.active .track-artist-line { color: rgba(255,255,255,0.7); }
+
+.track-duration { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+.track-fav { cursor: pointer; font-size: 14px; flex-shrink: 0; }
 .track-remove {
   cursor: pointer;
   font-size: 12px;
@@ -321,6 +343,42 @@ html, body {
 }
 .context-item:hover {
   background: var(--bg-hover);
+}
+
+/* ---------- Track Detail Tooltip ---------- */
+.track-tooltip {
+  position: fixed;
+  z-index: 600;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px var(--shadow);
+  max-width: 280px;
+  pointer-events: none;
+}
+.track-tooltip.hidden { display: none; }
+.track-tooltip strong { color: var(--accent); }
+
+/* ---------- Playlist Filters ---------- */
+.playlist-filters {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.playlist-filters select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 3px 8px;
+  font-size: 12px;
+  max-width: 150px;
 }
 
 /* ---------- Equalizer ---------- */
