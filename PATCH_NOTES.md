@@ -2,6 +2,16 @@
 
 ---
 
+## v0.11.7 — 2026-04-05
+
+### Restore background playback (iOS) — with foreground-safe guards
+- Background playback is back: when the tab hides, a bare `<audio>` element takes over so music keeps playing on iOS
+- Foreground fix: on return, the AudioContext is now force-resumed and master gain re-asserted (works around iOS MediaElementSource routing getting stuck)
+- Foreground fix: in `stopBackupAudio()`, `play()` is now called BEFORE setting `currentTime` — seeking before play was the thing that broke WebKit's audio routing last time
+- Visibility changes are debounced 250ms, so spurious iOS events (URL bar collapse, etc.) don't rapidly pause/resume the main element
+
+---
+
 ## v0.11.6 — 2026-04-05
 
 ### Visualizer: auto-hiding controls
