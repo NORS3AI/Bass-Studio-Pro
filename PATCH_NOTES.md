@@ -2,6 +2,17 @@
 
 ---
 
+## v0.11.2 — 2026-04-05
+
+### Mini player readability on mobile
+- Album art in the mini player bumped from 48px to 56px (visible, not tiny)
+- Track title now scrolls marquee-style when it overflows — seamless loop with duplicated text
+- Font sizes nudged up (title 14px, artist 12px) for mobile legibility
+- Title info row now takes full width on mobile so there's room to read
+- Marquee pauses under `prefers-reduced-motion`
+
+---
+
 ## v0.11.1 — 2026-04-05
 
 ### Fix: EQ/VIZ unreachable on iPhone mini player

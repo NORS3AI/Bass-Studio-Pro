@@ -520,8 +520,22 @@
   // PLAYBACK
   // ============================================
 
+  function setMarqueeTitle(text) {
+    const inner = trackTitle.querySelector('.marquee-inner');
+    if (!inner) { trackTitle.textContent = text; return; }
+    inner.textContent = text;
+    inner.setAttribute('data-text', text);
+    trackTitle.classList.remove('marquee');
+    // Defer measure to next frame so layout is up to date
+    requestAnimationFrame(() => {
+      if (inner.scrollWidth > trackTitle.clientWidth + 1) {
+        trackTitle.classList.add('marquee');
+      }
+    });
+  }
+
   function updateNowPlayingUI(track) {
-    trackTitle.textContent = track.title;
+    setMarqueeTitle(track.title);
     trackArtist.textContent = track.artist;
     if (track.artUrl) {
       albumArt.src = track.artUrl;
@@ -626,8 +640,20 @@
   });
 
   Playlist.on('trackerror', ({ message }) => {
-    trackTitle.textContent = message;
+    setMarqueeTitle(message);
     trackArtist.textContent = 'Open your music files again to reconnect';
+  });
+
+  // Re-measure marquee on resize/orientation change
+  window.addEventListener('resize', () => {
+    const inner = trackTitle.querySelector('.marquee-inner');
+    if (!inner) return;
+    trackTitle.classList.remove('marquee');
+    requestAnimationFrame(() => {
+      if (inner.scrollWidth > trackTitle.clientWidth + 1) {
+        trackTitle.classList.add('marquee');
+      }
+    });
   });
 
   Player.on('statechange', (state) => {
