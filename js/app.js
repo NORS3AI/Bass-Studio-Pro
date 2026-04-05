@@ -864,14 +864,29 @@
   // VISUALIZER
   // ============================================
 
+  // Auto-hide viz controls after 3s of inactivity
+  let vizIdleTimer = null;
+  function showVizControls() {
+    vizOverlay.classList.add('controls-visible');
+    if (vizIdleTimer) clearTimeout(vizIdleTimer);
+    vizIdleTimer = setTimeout(() => {
+      vizOverlay.classList.remove('controls-visible');
+    }, 3000);
+  }
+  function clearVizIdleTimer() {
+    if (vizIdleTimer) { clearTimeout(vizIdleTimer); vizIdleTimer = null; }
+  }
+
   function openVisualizer() {
     vizOverlay.classList.remove('hidden');
     Visualizer.start();
     vizModeLabel.textContent = Visualizer.getCurrentMode().name;
+    showVizControls();
   }
   function closeVisualizer() {
     vizOverlay.classList.add('hidden');
     vizOverlay.classList.remove('controls-visible');
+    clearVizIdleTimer();
     Visualizer.stop();
   }
   function toggleVisualizer() { vizOverlay.classList.contains('hidden') ? openVisualizer() : closeVisualizer(); }
@@ -908,11 +923,20 @@
       vizWasSwiped = true;
       closeVisualizer();
     } else if (absDy < 10 && dx < 10) {
-      // Tap: toggle controls visibility on mobile
-      vizOverlay.classList.toggle('controls-visible');
+      // Tap: show controls (auto-hide timer resets)
+      showVizControls();
       e.preventDefault();
     }
   });
+
+  // Mouse movement reveals controls (desktop)
+  vizOverlay.addEventListener('mousemove', showVizControls);
+  // Keep controls visible while hovering the control bar itself
+  const vizControlsBar = vizOverlay.querySelector('.visualizer-controls');
+  if (vizControlsBar) {
+    vizControlsBar.addEventListener('mouseenter', clearVizIdleTimer);
+    vizControlsBar.addEventListener('mouseleave', showVizControls);
+  }
 
   // Color theme buttons (6.12)
   const vizThemeBtns = $('#viz-theme-btns');

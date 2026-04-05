@@ -592,8 +592,9 @@ html, body {
   flex-wrap: wrap;
   justify-content: center;
 }
-.visualizer-overlay:hover .visualizer-controls,
 .visualizer-overlay.controls-visible .visualizer-controls { opacity: 1; }
+.visualizer-overlay.controls-visible { cursor: default; }
+.visualizer-overlay:not(.controls-visible) { cursor: none; }
 #viz-mode-label { font-size: 13px; color: #ccc; min-width: 100px; text-align: center; }
 
 .viz-divider {

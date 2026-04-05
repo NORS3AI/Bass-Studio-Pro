@@ -2,6 +2,16 @@
 
 ---
 
+## v0.11.6 — 2026-04-05
+
+### Visualizer: auto-hiding controls
+- Visualizer control bar now fades out after 3 seconds of inactivity for a distraction-free view
+- Tap the screen (iOS/mobile) or move the mouse (desktop) to bring the controls back
+- Hovering the control bar itself keeps it visible
+- Cursor also auto-hides on desktop when controls are hidden
+
+---
+
 ## v0.11.5 — 2026-04-05
 
 ### Critical fix: Music only played when tab was hidden
