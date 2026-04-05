@@ -1342,24 +1342,58 @@
   // ============================================
 
   // --- Theme ---
-  try {
-    const themeSetting = await Storage.getSetting('theme');
-    if (themeSetting) { applyTheme(themeSetting); $('#setting-theme').value = themeSetting; }
-  } catch (_) {}
+  const vwAccentRow = $('#vw-accent-row');
+  const vwAccentSelect = $('#setting-vw-accent');
 
   function applyTheme(value) {
-    if (value === 'system') {
+    // Backward compat: 'dark' is now 'original'
+    let v = value === 'dark' ? 'original' : value;
+    if (v === 'system') {
       const prefersDark = !window.matchMedia('(prefers-color-scheme: light)').matches;
-      document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+      v = prefersDark ? 'original' : 'light';
+    }
+    if (v === 'original') {
+      document.documentElement.removeAttribute('data-theme');
     } else {
-      document.documentElement.dataset.theme = value;
+      document.documentElement.dataset.theme = v;
+    }
+    // Show VW accent sub-picker only when VW theme is active
+    if (vwAccentRow) vwAccentRow.classList.toggle('hidden', v !== 'vw-gti');
+  }
+
+  function applyVwAccent(accent) {
+    if (accent) {
+      document.documentElement.dataset.vwAccent = accent;
+    } else {
+      document.documentElement.removeAttribute('data-vw-accent');
     }
   }
+
+  try {
+    const themeSetting = await Storage.getSetting('theme');
+    if (themeSetting) {
+      const normalized = themeSetting === 'dark' ? 'original' : themeSetting;
+      applyTheme(normalized);
+      $('#setting-theme').value = normalized;
+    }
+    const vwAccent = await Storage.getSetting('vwAccent');
+    if (vwAccent) {
+      applyVwAccent(vwAccent);
+      if (vwAccentSelect) vwAccentSelect.value = vwAccent;
+    }
+  } catch (_) {}
 
   $('#setting-theme').addEventListener('change', (e) => {
     applyTheme(e.target.value);
     try { Storage.saveSetting('theme', e.target.value); } catch (_) {}
   });
+
+  if (vwAccentSelect) {
+    vwAccentSelect.addEventListener('change', (e) => {
+      applyVwAccent(e.target.value);
+      try { Storage.saveSetting('vwAccent', e.target.value); } catch (_) {}
+    });
+  }
 
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
     try { Storage.getSetting('theme').then(t => { if (t === 'system') applyTheme('system'); }); } catch (_) {}

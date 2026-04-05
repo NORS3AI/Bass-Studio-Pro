@@ -159,11 +159,12 @@ const Player = (() => {
     } else {
       if (bgSwapTimer) { clearTimeout(bgSwapTimer); bgSwapTimer = null; }
       if (backupAudio) stopBackupAudio();
-      // Defensively resume ctx and reassert gain (iOS can leave MediaElementSource
-      // routing disconnected after suspend/resume).
+      // Defensively resume ctx, rebuild graph, and reassert gain (iOS can leave
+      // MediaElementSource routing disconnected / EQ bypassed after suspend/resume).
       if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
         ctx.resume().catch(() => {});
       }
+      connectGraph();
       if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
     }
   }

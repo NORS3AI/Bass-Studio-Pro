@@ -2,6 +2,28 @@
 
 ---
 
+## v0.12.0 — 2026-04-05
+
+### New themes
+- Rebranded the default theme as **Original**
+- **WoW Alliance** — deep navy with gold accents
+- **WoW Horde** — crimson and char
+- **Dungeons & Dragons** — parchment dark with blood-red accents
+- **VW GTI Dark Mode** — carbon racetrack with selectable accents: Tornado Red (classic), Pure White, Reflex Silver, Honey Yellow (checkered), Rising Blue, Clark Tartan
+- Theme + GTI accent choice persist across sessions
+- Existing saved "dark" preference auto-migrates to Original
+
+### New visualizers + rebuilt Blob
+- **Liquid Blob** (rewritten) — four nested iridescent layers with phase-offset wobble, multi-octave organic motion, color-shifting radial gradients, and specular highlights on beats
+- **Aurora Ribbons** — flowing color bands sweeping the canvas with per-ribbon glow and bass-driven amplitude
+- **Nebula** — drifting cosmic clouds in additive blend, plus a treble-reactive starfield
+- **Warp Tunnel** — concentric wobbling rings pulsing outward on bass, neon glow
+
+### Fix: EQ/quality degradation after tab switch
+- On return to foreground the audio graph is now fully rebuilt via `connectGraph()` — iOS could leave the MediaElementSource bypassing the EQ chain after visibility changes, causing the "EQ changed and sound got flatter" symptom
+
+---
+
 ## v0.11.7 — 2026-04-05
 
 ### Restore background playback (iOS) — with foreground-safe guards

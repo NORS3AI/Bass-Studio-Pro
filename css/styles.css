@@ -35,6 +35,77 @@
   --shadow: rgba(0, 0, 0, 0.1);
 }
 
+/* World of Warcraft — Alliance (navy + gold) */
+[data-theme="wow-alliance"] {
+  --bg-primary: #040812;
+  --bg-secondary: #0a1428;
+  --bg-panel: #112240;
+  --bg-hover: #1a3560;
+  --text-primary: #f0e6c8;
+  --text-secondary: #a8b8d4;
+  --accent: #f0c430;
+  --accent-hover: #ffd84a;
+  --accent-rgb: 240, 196, 48;
+  --border: #24436b;
+  --shadow: rgba(0, 20, 60, 0.6);
+}
+
+/* World of Warcraft — Horde (crimson + char) */
+[data-theme="wow-horde"] {
+  --bg-primary: #0a0404;
+  --bg-secondary: #160808;
+  --bg-panel: #241010;
+  --bg-hover: #3a1a1a;
+  --text-primary: #f2d9b6;
+  --text-secondary: #b89070;
+  --accent: #c41e1e;
+  --accent-hover: #e12a2a;
+  --accent-rgb: 196, 30, 30;
+  --border: #4a1d1d;
+  --shadow: rgba(40, 0, 0, 0.6);
+}
+
+/* Dungeons & Dragons (parchment dark + blood red) */
+[data-theme="dnd"] {
+  --bg-primary: #140a06;
+  --bg-secondary: #22130d;
+  --bg-panel: #2e1b12;
+  --bg-hover: #40281b;
+  --text-primary: #f4e4c1;
+  --text-secondary: #b59870;
+  --accent: #c9302c;
+  --accent-hover: #e24441;
+  --accent-rgb: 201, 48, 44;
+  --border: #5a3420;
+  --shadow: rgba(20, 5, 0, 0.65);
+}
+
+/* VW GTI Dark Mode — carbon racetrack, accent selectable via [data-vw-accent] */
+[data-theme="vw-gti"] {
+  --bg-primary: #050505;
+  --bg-secondary: #0d0d0d;
+  --bg-panel: #161616;
+  --bg-hover: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #9a9a9a;
+  --accent: #e30613;
+  --accent-hover: #ff1a28;
+  --accent-rgb: 227, 6, 19;
+  --border: #2a2a2a;
+  --shadow: rgba(0, 0, 0, 0.8);
+}
+[data-theme="vw-gti"][data-vw-accent="white"]  { --accent: #ffffff; --accent-hover: #e8e8e8; --accent-rgb: 255, 255, 255; }
+[data-theme="vw-gti"][data-vw-accent="silver"] { --accent: #c0c0c0; --accent-hover: #dcdcdc; --accent-rgb: 192, 192, 192; }
+[data-theme="vw-gti"][data-vw-accent="yellow"] { --accent: #ffcc00; --accent-hover: #ffd733; --accent-rgb: 255, 204, 0; }
+[data-theme="vw-gti"][data-vw-accent="blue"]   { --accent: #1b4b8f; --accent-hover: #2c6ac4; --accent-rgb: 27, 75, 143; }
+[data-theme="vw-gti"][data-vw-accent="tartan"] {
+  --accent: #d62222;
+  --accent-hover: #ff3b3b;
+  --accent-rgb: 214, 34, 34;
+  --bg-panel: #171010;
+  --border: #3a1818;
+}
+
 /* ---------- Reset ---------- */
 *, *::before, *::after {
   box-sizing: border-box;
