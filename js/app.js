@@ -798,7 +798,15 @@
   function togglePanel(section) {
     const wasVisible = !section.classList.contains('hidden');
     [eqSection].forEach(s => s.classList.add('hidden'));
-    if (!wasVisible) section.classList.remove('hidden');
+    if (!wasVisible) {
+      section.classList.remove('hidden');
+      // Collapse expanded mini player so panel is visible on mobile
+      if (nowPlayingBar && nowPlayingBar.classList.contains('np-expanded')) {
+        nowPlayingBar.classList.remove('np-expanded');
+        if (btnNpExpand) btnNpExpand.setAttribute('aria-label', 'Expand player');
+      }
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 
   btnEqToggle.addEventListener('click', () => togglePanel(eqSection));

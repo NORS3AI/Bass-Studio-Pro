@@ -2,6 +2,16 @@
 
 ---
 
+## v0.11.1 — 2026-04-05
+
+### Fix: EQ/VIZ unreachable on iPhone mini player
+- EQ, VIZ, and A-B buttons now remain visible in the collapsed mini player (core features shouldn't be buried behind an expand tap)
+- Speed and volume controls still tuck into the expanded sheet
+- Opening the EQ panel now auto-collapses the expanded player and scrolls the panel into view, so the sliders are actually visible on mobile
+- Same flow applies to any panel toggled via `togglePanel()`
+
+---
+
 ## v0.11.0 — 2026-04-04
 
 ### Phase 9: Mini Player & Responsive UI

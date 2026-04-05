@@ -1,7 +1,7 @@
 /**
  * sw.js — Service Worker for offline caching
  */
-const CACHE_NAME = 'bass-studio-pro-v0.11.0';
+const CACHE_NAME = 'bass-studio-pro-v0.11.1';
 const ASSETS = [
   '/',
   '/index.html',

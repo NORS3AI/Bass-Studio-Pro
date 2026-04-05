@@ -1092,9 +1092,15 @@ html, body {
   }
   .np-expand-btn { display: inline-flex; }
 
-  /* Collapsed: show only info row + primary play controls */
-  #now-playing-bar:not(.np-expanded) .progress-row,
-  #now-playing-bar:not(.np-expanded) .secondary-controls { display: none; }
+  /* Collapsed: show info row, primary play controls, and EQ/VIZ (core features) */
+  #now-playing-bar:not(.np-expanded) .progress-row { display: none; }
+  #now-playing-bar:not(.np-expanded) .secondary-controls {
+    flex-basis: 100%;
+    justify-content: center;
+    gap: 4px;
+  }
+  #now-playing-bar:not(.np-expanded) #btn-speed,
+  #now-playing-bar:not(.np-expanded) .volume-control { display: none; }
   #now-playing-bar:not(.np-expanded) .playback-controls #btn-shuffle,
   #now-playing-bar:not(.np-expanded) .playback-controls #btn-repeat { display: none; }
   #now-playing-bar:not(.np-expanded) #btn-favorite { display: none; }
