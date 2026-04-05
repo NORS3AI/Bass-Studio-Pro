@@ -2,6 +2,14 @@
 
 ---
 
+## v0.11.4 — 2026-04-05
+
+### Fix: In-app patch notes viewer always fetches fresh
+- `patch-notes.js` now appends a cache-bust query param and sends `cache: 'no-store'` so the viewer always shows the latest release notes
+- Defense-in-depth alongside the v0.11.3 service-worker network-first rule
+
+---
+
 ## v0.11.3 — 2026-04-05
 
 ### Fix: Patch notes showing stale cached version

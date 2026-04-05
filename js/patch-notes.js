@@ -9,7 +9,8 @@ const PatchNotes = (() => {
 
   async function load() {
     try {
-      const res = await fetch('PATCH_NOTES.md');
+      // Cache-bust to always get fresh patch notes (bypasses SW cache match)
+      const res = await fetch('PATCH_NOTES.md?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) return;
       content = await res.text();
       versions = parseVersions(content);
