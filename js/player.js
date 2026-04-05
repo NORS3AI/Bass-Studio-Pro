@@ -35,10 +35,6 @@ const Player = (() => {
   let audioElement = null;
   let sourceNode = null;
 
-  // Background playback
-  let backupAudio = null;
-  let wasPlayingBeforeHide = false;
-
   // State
   let currentTrack = null;
   let isPlaying = false;
@@ -50,7 +46,7 @@ const Player = (() => {
   function applyRate() {
     const pitchRatio = Math.pow(2, pitchSemitones / 12);
     const rate = speed * pitchRatio;
-    [elements[0], elements[1], backupAudio].forEach(el => {
+    [elements[0], elements[1]].forEach(el => {
       if (!el) return;
       try { el.preservesPitch = (pitchSemitones === 0); } catch (_) {}
       try { el.mozPreservesPitch = (pitchSemitones === 0); } catch (_) {}
@@ -124,71 +120,34 @@ const Player = (() => {
   function attachElementListeners(slot) {
     const el = elements[slot];
     el.addEventListener('timeupdate', () => {
-      if (slot !== activeSlot || backupAudio) return;
+      if (slot !== activeSlot) return;
       emit('timeupdate', { currentTime: el.currentTime, duration: el.duration || 0 });
     });
     el.addEventListener('ended', () => {
-      if (slot !== activeSlot || backupAudio) return;
+      if (slot !== activeSlot) return;
       emit('ended');
     });
     el.addEventListener('play', () => {
-      if (slot !== activeSlot || backupAudio) return;
+      if (slot !== activeSlot) return;
       isPlaying = true;
       emit('statechange', 'playing');
     });
     el.addEventListener('pause', () => {
-      if (slot !== activeSlot || backupAudio) return;
+      if (slot !== activeSlot) return;
       isPlaying = false;
       emit('statechange', 'paused');
     });
   }
 
   function handleVisibilityChange() {
-    if (document.hidden) {
-      wasPlayingBeforeHide = isPlaying;
-      if (isPlaying && currentTrack && currentTrack.url) startBackupAudio();
-    } else {
-      if (backupAudio) stopBackupAudio();
-      if (ctx.state === 'suspended') ctx.resume();
-    }
-  }
-
-  function startBackupAudio() {
-    try {
-      backupAudio = new Audio();
-      backupAudio.src = audioElement.src;
-      backupAudio.currentTime = audioElement.currentTime;
-      backupAudio.volume = isMuted ? 0 : volume;
-      applyRate();
-      backupAudio.addEventListener('ended', () => emit('ended'));
-      backupAudio.addEventListener('timeupdate', () => {
-        emit('timeupdate', {
-          currentTime: backupAudio.currentTime,
-          duration: backupAudio.duration || 0,
-        });
-      });
-      backupAudio.play().catch(() => { backupAudio = null; });
-      audioElement.pause();
-    } catch (_) {
-      backupAudio = null;
-    }
-  }
-
-  function stopBackupAudio() {
-    if (!backupAudio) return;
-    const backupTime = backupAudio.currentTime;
-    const backupWasPlaying = !backupAudio.paused;
-    backupAudio.pause();
-    backupAudio.removeAttribute('src');
-    backupAudio.load();
-    backupAudio = null;
-    if (audioElement.src) {
-      audioElement.currentTime = backupTime;
-      if (backupWasPlaying) {
-        isPlaying = true;
-        emit('statechange', 'playing');
-        audioElement.play().catch(() => {});
+    if (!document.hidden) {
+      // On return to foreground, defensively resume ctx and re-assert gain.
+      // iOS/WebKit can leave MediaElementSource routing disconnected after
+      // suspend/resume; reasserting the gain value pokes the graph awake.
+      if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+        ctx.resume().catch(() => {});
       }
+      if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
     }
   }
 
@@ -224,13 +183,6 @@ const Player = (() => {
     // Any pending crossfade is invalidated by an explicit track change.
     cancelCrossfade();
 
-    // Kill backup if it exists
-    if (backupAudio) {
-      backupAudio.pause();
-      backupAudio.removeAttribute('src');
-      backupAudio.load();
-      backupAudio = null;
-    }
     // Stop the secondary (any preloaded next-track)
     stopSlot(1 - activeSlot);
 
@@ -403,11 +355,6 @@ const Player = (() => {
   }
 
   function pause() {
-    if (backupAudio) {
-      backupAudio.pause();
-      isPlaying = false;
-      emit('statechange', 'paused');
-    }
     audioElement.pause();
     // If we're mid-crossfade, pause the secondary too
     if (crossfadeActive) {
@@ -418,18 +365,6 @@ const Player = (() => {
 
   function togglePlay() {
     if (!currentTrack) return;
-    if (backupAudio) {
-      if (backupAudio.paused) {
-        backupAudio.play().catch(() => {});
-        isPlaying = true;
-        emit('statechange', 'playing');
-      } else {
-        backupAudio.pause();
-        isPlaying = false;
-        emit('statechange', 'paused');
-      }
-      return;
-    }
     if (crossfadeActive) {
       const secEl = elements[1 - activeSlot];
       if (isPlaying) {
@@ -445,17 +380,15 @@ const Player = (() => {
   }
 
   function seek(time) {
-    const dur = audioElement.duration || (backupAudio ? backupAudio.duration : 0);
+    const dur = audioElement.duration || 0;
     if (!dur) return;
     const t = Math.max(0, Math.min(time, dur));
     audioElement.currentTime = t;
-    if (backupAudio) backupAudio.currentTime = t;
   }
 
   function setVolume(v) {
     volume = Math.max(0, Math.min(1, v));
     if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
-    if (backupAudio) backupAudio.volume = isMuted ? 0 : volume;
     emit('volumechange', volume);
   }
   function getVolume() { return volume; }
@@ -463,7 +396,6 @@ const Player = (() => {
   function toggleMute() {
     isMuted = !isMuted;
     if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
-    if (backupAudio) backupAudio.volume = isMuted ? 0 : volume;
     emit('mutechange', isMuted);
   }
 
@@ -494,11 +426,9 @@ const Player = (() => {
   function getAnalyser() { return analyser; }
   function getContext() { return ctx; }
   function getCurrentTime() {
-    if (backupAudio) return backupAudio.currentTime;
     return audioElement ? audioElement.currentTime : 0;
   }
   function getDuration() {
-    if (backupAudio) return backupAudio.duration || 0;
     return audioElement ? audioElement.duration || 0 : 0;
   }
   function getState() {

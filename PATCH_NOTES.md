@@ -2,6 +2,16 @@
 
 ---
 
+## v0.11.5 — 2026-04-05
+
+### Critical fix: Music only played when tab was hidden
+- Removed the background-playback backup-audio hack that was pausing the main element on every visibility change
+- On iOS/WebKit (incl. Orion), pausing + re-seeking + replaying the main element broke the MediaElementSource routing so nothing came out of the speakers while the tab was visible, while the bare backup `<audio>` element kept playing when hidden
+- Visibility handler now only resumes the AudioContext and reasserts the master gain when returning to foreground
+- Trade-off: iOS will pause audio when the tab is backgrounded (standard iOS Safari behavior). Background playback can be revisited later via Media Session API or a different strategy
+
+---
+
 ## v0.11.4 — 2026-04-05
 
 ### Fix: In-app patch notes viewer always fetches fresh
