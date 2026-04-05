@@ -12,7 +12,7 @@ See `PHASES.md` for the full 14-phase roadmap (151 tasks). Each phase has a vers
 
 Bass Studio Pro is an offline-first, browser-based music player. It runs entirely client-side with no server dependencies. Users load music from their local filesystem (desktop or iOS Files app) and get a full-featured playback experience with equalizer presets, beat-synced visualizers, and comprehensive playlist management.
 
-**Live App**: https://nors3ai.github.io/bass-studio-pro/
+**Live App**: https://nors3ai.github.io/Bass-Studio-Pro/
 
 ## Tech Stack
 

@@ -1,6 +1,6 @@
 # Bass Studio Pro
 
-**Live App: [https://nors3ai.github.io/bass-studio-pro/](https://nors3ai.github.io/bass-studio-pro/)**
+**Live App: [https://nors3ai.github.io/Bass-Studio-Pro/](https://nors3ai.github.io/Bass-Studio-Pro/)**
 
 Bass Studio Pro is a fully offline, browser-based music player. Load tracks from your desktop or iOS Files app, build playlists, shape your sound with a built-in equalizer, and watch beat-synced visualizers — all without an internet connection.
 
@@ -46,12 +46,12 @@ Each preset drives a chain of Web Audio API BiquadFilter nodes so EQ changes are
 ## Getting Started
 
 ### Use the hosted app
-Visit **[https://nors3ai.github.io/bass-studio-pro/](https://nors3ai.github.io/bass-studio-pro/)** in any modern browser. The service worker will cache the app for offline use after the first load.
+Visit **[https://nors3ai.github.io/Bass-Studio-Pro/](https://nors3ai.github.io/Bass-Studio-Pro/)** in any modern browser. The service worker will cache the app for offline use after the first load.
 
 ### Run locally
 ```bash
-git clone https://github.com/nors3ai/bass-studio-pro.git
-cd bass-studio-pro
+git clone https://github.com/nors3ai/Bass-Studio-Pro.git
+cd Bass-Studio-Pro
 npx serve .
 # or
 python3 -m http.server 8000
