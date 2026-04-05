@@ -2,6 +2,15 @@
 
 ---
 
+## v0.11.3 — 2026-04-05
+
+### Fix: Patch notes showing stale cached version
+- Service worker now uses network-first strategy for `PATCH_NOTES.md` — falls back to cache only when offline
+- App shell (JS/CSS/HTML) still cache-first for instant load and offline use
+- Fixes the issue where the in-app patch notes viewer lagged several releases behind after updates
+
+---
+
 ## v0.11.2 — 2026-04-05
 
 ### Mini player readability on mobile
