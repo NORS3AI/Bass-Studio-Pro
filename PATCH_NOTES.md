@@ -2,6 +2,18 @@
 
 ---
 
+## v0.12.1 — 2026-04-06
+
+### Critical fix: iOS audio completely broken
+- **Removed `connectGraph()` from visibility handler** — on iOS/WebKit, disconnecting and reconnecting nodes downstream of a MediaElementSource permanently kills audio output. This was added in v0.12.0 and broke all iOS playback
+- **Removed silent-WAV unlock trick** — playing silence on a MediaElementSource-connected element and then pausing/removing its src left the element in a dead state on iOS. Now just calls `ctx.resume()` on first user gesture
+- **Handle `'interrupted'` AudioContext state everywhere** — iOS uses the "interrupted" state (not just "suspended") when the context is blocked. All `ctx.state` checks now cover both states
+- **Added `playsinline` + `preload="auto"` attributes** to audio elements for iOS compatibility
+- **Removed `crossOrigin = 'anonymous'`** — blob: URLs are same-origin; setting crossOrigin on them can cause iOS WebKit to treat them as cross-origin and output silence through MediaElementSource
+- Replaced graph rebuild with non-destructive gain re-assertion on visibility return
+
+---
+
 ## v0.12.0 — 2026-04-05
 
 ### New themes

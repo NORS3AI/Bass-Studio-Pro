@@ -81,6 +81,8 @@ const Player = (() => {
     // per element, so we make both now and reuse them for the session.
     for (let i = 0; i < 2; i++) {
       elements[i] = new Audio();
+      elements[i].setAttribute('playsinline', '');
+      elements[i].setAttribute('preload', 'auto');
       sources[i] = ctx.createMediaElementSource(elements[i]);
       slotGains[i] = ctx.createGain();
       slotGains[i].gain.value = (i === 0) ? 1.0 : 0.0;
@@ -93,20 +95,10 @@ const Player = (() => {
     connectGraph();
     gainNode.gain.value = volume;
 
-    // iOS/Safari: AudioContext starts suspended. Unlock on first user gesture.
-    let audioUnlocked = false;
+    // iOS/Safari: AudioContext starts suspended. Resume on first user gesture.
     function unlockAudio() {
-      if (ctx.state === 'suspended') ctx.resume();
-      if (!audioUnlocked) {
-        audioUnlocked = true;
-        const silence = audioElement.src;
-        if (!silence) {
-          audioElement.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-          audioElement.play().then(() => {
-            audioElement.pause();
-            audioElement.removeAttribute('src');
-          }).catch(() => {});
-        }
+      if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
+        ctx.resume().catch(() => {});
       }
       document.removeEventListener('touchstart', unlockAudio, true);
       document.removeEventListener('touchend', unlockAudio, true);
@@ -159,13 +151,16 @@ const Player = (() => {
     } else {
       if (bgSwapTimer) { clearTimeout(bgSwapTimer); bgSwapTimer = null; }
       if (backupAudio) stopBackupAudio();
-      // Defensively resume ctx, rebuild graph, and reassert gain (iOS can leave
-      // MediaElementSource routing disconnected / EQ bypassed after suspend/resume).
+      // Defensively resume ctx and reassert gain values.
+      // IMPORTANT: Do NOT call connectGraph() here — on iOS/WebKit,
+      // disconnecting/reconnecting nodes downstream of MediaElementSource
+      // can permanently kill audio output.
       if (ctx.state === 'suspended' || ctx.state === 'interrupted') {
         ctx.resume().catch(() => {});
       }
-      connectGraph();
       if (gainNode) gainNode.gain.value = isMuted ? 0 : volume;
+      if (normGainNode) normGainNode.gain.value = normGainNode.gain.value; // poke
+      slotGains[activeSlot].gain.value = slotGains[activeSlot].gain.value; // poke
     }
   }
 
@@ -273,7 +268,7 @@ const Player = (() => {
 
     emit('trackloaded', track);
 
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
     const playPromise = audioElement.play();
     if (playPromise) {
       playPromise.catch(err => {
@@ -347,7 +342,7 @@ const Player = (() => {
     slotGains[secIdx].gain.setValueAtTime(0, now);
     slotGains[secIdx].gain.linearRampToValueAtTime(1, now + d);
 
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
     secEl.play().catch(() => {});
 
     setTimeout(() => {
@@ -368,7 +363,7 @@ const Player = (() => {
     slotGains[activeSlot].gain.value = 0.0;
     slotGains[secIdx].gain.cancelScheduledValues(ctx.currentTime);
     slotGains[secIdx].gain.value = 1.0;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
     elements[secIdx].play().catch(() => {});
     completeSwap(secIdx, nextTrack);
     return true;
@@ -421,7 +416,7 @@ const Player = (() => {
 
   async function play() {
     if (!currentTrack) return;
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume();
     try { await audioElement.play(); } catch (err) {
       if (err.name !== 'AbortError') emit('error', { message: 'Playback failed', error: err });
     }
