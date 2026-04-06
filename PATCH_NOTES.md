@@ -2,6 +2,14 @@
 
 ---
 
+## v0.12.2 — 2026-04-06
+
+### Phase 9 complete: PiP + Tablet layout
+- **Picture-in-Picture (9.3)**: PiP button appears in the now-playing bar on browsers that support Document PiP (Chrome 116+). Opens a floating window with album art, title/artist, and play/prev/next controls. Stays synced with player state. On iOS, Media Session API (already implemented) provides lock screen and notification center controls
+- **Tablet layout (9.5)**: Screens 769–1199px now use a two-column CSS grid: playlist on the left, EQ panel on the right. Drop zone and smart playlists span both columns
+
+---
+
 ## v0.12.1 — 2026-04-06
 
 ### Critical fix: iOS audio completely broken

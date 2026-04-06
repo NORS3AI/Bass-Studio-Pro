@@ -970,6 +970,83 @@
   vizColorSecondary.addEventListener('click', (e) => e.stopPropagation());
 
   // ============================================
+  // PICTURE-IN-PICTURE (9.3)
+  // ============================================
+
+  const btnPip = $('#btn-pip');
+  let pipWindow = null;
+
+  // Show PiP button only if Document PiP is supported (Chrome 116+)
+  if ('documentPictureInPicture' in window && btnPip) {
+    btnPip.classList.remove('hidden');
+
+    btnPip.addEventListener('click', async () => {
+      try {
+        if (pipWindow && !pipWindow.closed) {
+          pipWindow.close();
+          pipWindow = null;
+          return;
+        }
+        pipWindow = await documentPictureInPicture.requestWindow({
+          width: 320, height: 200,
+        });
+        const pipDoc = pipWindow.document;
+        pipDoc.head.innerHTML = `<style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { background: #0a0a0f; color: #e8e8f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 8px; user-select: none; }
+          img { width: 80px; height: 80px; border-radius: 6px; object-fit: cover; background: #252540; }
+          .title { font-size: 13px; font-weight: 600; text-align: center; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .artist { font-size: 11px; color: #9898b0; text-align: center; }
+          .controls { display: flex; gap: 12px; margin-top: 4px; }
+          button { background: none; border: none; color: #e8e8f0; font-size: 22px; cursor: pointer; padding: 4px 8px; border-radius: 4px; }
+          button:hover { background: rgba(255,255,255,0.1); }
+        </style>`;
+        const state = Player.getState();
+        const track = state.currentTrack;
+        pipDoc.body.innerHTML = `
+          <img id="pip-art" src="${albumArt.src || PLACEHOLDER_ART}" alt="">
+          <div class="title" id="pip-title">${track ? track.title : 'No track'}</div>
+          <div class="artist" id="pip-artist">${track ? track.artist : ''}</div>
+          <div class="controls">
+            <button id="pip-prev">&#x23ee;</button>
+            <button id="pip-play">${state.isPlaying ? '&#x23f8;' : '&#x25b6;'}</button>
+            <button id="pip-next">&#x23ed;</button>
+          </div>
+        `;
+        pipDoc.getElementById('pip-prev').addEventListener('click', () => Playlist.prev());
+        pipDoc.getElementById('pip-next').addEventListener('click', () => Playlist.next());
+        pipDoc.getElementById('pip-play').addEventListener('click', () => Player.togglePlay());
+
+        // Keep PiP synced with player state
+        const updatePip = (track) => {
+          if (!pipWindow || pipWindow.closed) return;
+          const d = pipWindow.document;
+          const t = d.getElementById('pip-title');
+          const a = d.getElementById('pip-artist');
+          const art = d.getElementById('pip-art');
+          if (t) t.textContent = track.title;
+          if (a) a.textContent = track.artist;
+          if (art) art.src = track.artUrl || PLACEHOLDER_ART;
+        };
+        const updatePlayBtn = () => {
+          if (!pipWindow || pipWindow.closed) return;
+          const btn = pipWindow.document.getElementById('pip-play');
+          if (btn) btn.innerHTML = Player.getState().isPlaying ? '&#x23f8;' : '&#x25b6;';
+        };
+        Player.on('trackloaded', updatePip);
+        Player.on('statechange', updatePlayBtn);
+        pipWindow.addEventListener('pagehide', () => {
+          Player.off('trackloaded', updatePip);
+          Player.off('statechange', updatePlayBtn);
+          pipWindow = null;
+        });
+      } catch (err) {
+        toast('Picture-in-Picture failed: ' + err.message, 'error');
+      }
+    });
+  }
+
+  // ============================================
   // EQ
   // ============================================
 

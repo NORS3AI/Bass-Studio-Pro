@@ -1168,7 +1168,24 @@ html, body {
 /* ---------- Smooth panel transitions (9.7) ---------- */
 .panel { transition: max-height var(--transition), opacity var(--transition); }
 
-/* ---------- Responsive ---------- */
+/* ---------- Tablet layout (9.5) ---------- */
+@media (min-width: 769px) and (max-width: 1199px) {
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+  /* Drop zone spans both columns */
+  #drop-zone { grid-column: 1 / -1; }
+  /* Playlist fills left column */
+  #playlist-section { grid-column: 1; grid-row: 2; }
+  /* EQ fills right column when visible */
+  #eq-section { grid-column: 2; grid-row: 2; }
+  /* Smart playlists span full width */
+  #smart-section { grid-column: 1 / -1; }
+}
+
+/* ---------- Responsive (mobile) ---------- */
 @media (max-width: 768px) {
   /* Larger touch targets (9.6) */
   .icon-btn { min-width: 44px; min-height: 44px; }
