@@ -371,7 +371,17 @@
         if (e.data && e.data.type === 'SW_UPDATED') {
           const banner = document.createElement('div');
           banner.className = 'update-banner';
-          banner.innerHTML = 'A new version is available. <button onclick="location.reload()">Refresh</button>';
+          banner.textContent = 'A new version is available. ';
+          const refreshBtn = document.createElement('button');
+          refreshBtn.textContent = 'Refresh';
+          refreshBtn.addEventListener('click', () => location.reload());
+          const dismissBtn = document.createElement('button');
+          dismissBtn.textContent = '\u2715';
+          dismissBtn.setAttribute('aria-label', 'Dismiss');
+          dismissBtn.style.marginLeft = '8px';
+          dismissBtn.addEventListener('click', () => banner.remove());
+          banner.appendChild(refreshBtn);
+          banner.appendChild(dismissBtn);
           document.body.appendChild(banner);
         }
       });

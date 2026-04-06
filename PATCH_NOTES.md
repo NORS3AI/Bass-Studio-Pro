@@ -2,6 +2,17 @@
 
 ---
 
+## v0.13.1 — 2026-04-06
+
+### Phase 10 Audit Fixes
+
+- **Security**: Fixed XSS vulnerability in SW update banner — replaced `innerHTML` with DOM methods
+- **UX**: Added dismiss button to SW update notification banner
+- **Icons**: Removed text from SVG icon for maskable safe zone compliance; regenerated all PNGs and favicon
+- **Cache**: Bumped service worker cache to v0.13.1
+
+---
+
 ## v0.13.0 — 2026-04-06
 
 ### Phase 10: PWA & Offline
