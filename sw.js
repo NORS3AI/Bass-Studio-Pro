@@ -1,7 +1,7 @@
 /**
  * sw.js — Service Worker for offline caching
  */
-const CACHE_NAME = 'bass-studio-pro-v0.12.3';
+const CACHE_NAME = 'bass-studio-pro-v0.13.0';
 const ASSETS = [
   '/',
   '/index.html',
@@ -17,6 +17,10 @@ const ASSETS = [
   '/js/app.js',
   '/manifest.json',
   '/PATCH_NOTES.md',
+  '/assets/icons/icon-192.png',
+  '/assets/icons/icon-512.png',
+  '/assets/icons/icon.svg',
+  '/assets/icons/favicon.ico',
 ];
 
 self.addEventListener('install', (e) => {
@@ -28,9 +32,16 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => {
+      const old = keys.filter(k => k !== CACHE_NAME);
+      if (old.length > 0) {
+        // Notify all clients that a new version is available
+        self.clients.matchAll().then(clients => {
+          clients.forEach(c => c.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME }));
+        });
+      }
+      return Promise.all(old.map(k => caches.delete(k)));
+    })
   );
   self.clients.claim();
 });

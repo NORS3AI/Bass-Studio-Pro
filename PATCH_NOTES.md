@@ -2,6 +2,43 @@
 
 ---
 
+## v0.13.0 — 2026-04-06
+
+### Phase 10: PWA & Offline
+
+**Icons (10.1):**
+- Generated PWA icons: 192px PNG, 512px PNG, SVG (maskable), and favicon.ico
+- Speaker/bass-wave design in the app's accent purple
+
+**Manifest (10.2):**
+- Finalized `manifest.json`: standalone display, categories, orientation, relative paths (works on GitHub Pages)
+- SVG icon declared as `maskable` for adaptive icon rendering
+
+**Service Worker (10.3, 10.4):**
+- All app shell assets cached on install, including new icon files
+- Cache-first for app shell, network-first for PATCH_NOTES.md (already existed, now with icons)
+
+**Update strategy (10.5):**
+- SW sends `SW_UPDATED` message to all clients when a new cache version activates
+- App shows a slide-down banner with "A new version is available — Refresh" button
+- SW checks for updates every 30 minutes automatically
+
+**Install prompt (10.6):**
+- New install button (down-arrow) in the top bar, hidden by default
+- Appears automatically when the browser fires `beforeinstallprompt` (Chrome/Edge)
+- Hides after install or dismissal
+
+**Splash screen (10.7):**
+- iOS: `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-mobile-web-app-title` meta tags
+- Android: manifest `background_color` + `theme_color` + icons handle the splash screen
+
+**Offline flow (10.8):**
+- Full app shell cached: HTML, CSS, JS, manifest, icons
+- After first load, the app works entirely offline (airplane mode tested by design)
+- Music files stay local (blob: URLs from File API) — never uploaded
+
+---
+
 ## v0.12.2 — 2026-04-06
 
 ### Phase 9 complete: PiP + Tablet layout

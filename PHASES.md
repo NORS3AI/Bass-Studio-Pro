@@ -188,14 +188,14 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 10 — PWA & Offline (v0.11.0)
 > **Goal**: Installable PWA that works fully offline.
 
-- [ ] **10.1** Create PWA icons (icon-192.png, icon-512.png, favicon.ico)
-- [ ] **10.2** Finalize manifest.json — name, colors, icons, start_url, display
-- [ ] **10.3** Service worker — cache all app shell assets on install
-- [ ] **10.4** Service worker — serve from cache first, fall back to network
-- [ ] **10.5** Service worker — update strategy: detect new version, prompt user to refresh
-- [ ] **10.6** "Add to Home Screen" — install prompt for mobile browsers
-- [ ] **10.7** Splash screen for installed PWA
-- [ ] **10.8** Test full offline flow: install, close browser, airplane mode, reopen, play music
+- [x] **10.1** Create PWA icons (icon-192.png, icon-512.png, favicon.ico)
+- [x] **10.2** Finalize manifest.json — name, colors, icons, start_url, display
+- [x] **10.3** Service worker — cache all app shell assets on install
+- [x] **10.4** Service worker — serve from cache first, fall back to network
+- [x] **10.5** Service worker — update strategy: detect new version, prompt user to refresh
+- [x] **10.6** "Add to Home Screen" — install prompt for mobile browsers
+- [x] **10.7** Splash screen for installed PWA
+- [x] **10.8** Test full offline flow: install, close browser, airplane mode, reopen, play music
 
 **Definition of done**: App installs to home screen on iOS and Android. Works with zero network after first load. Updates cleanly when new versions are deployed.
 

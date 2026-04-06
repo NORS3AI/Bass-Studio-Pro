@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a0a0f"/>
+  <rect x="16" y="16" width="480" height="480" rx="80" fill="#14141f" stroke="#6c5ce7" stroke-width="4"/>
+  <!-- Speaker cone -->
+  <g transform="translate(256,256)">
+    <!-- Outer ring -->
+    <circle cx="0" cy="0" r="160" fill="none" stroke="#6c5ce7" stroke-width="6" opacity="0.3"/>
+    <circle cx="0" cy="0" r="120" fill="none" stroke="#6c5ce7" stroke-width="4" opacity="0.5"/>
+    <!-- Bass wave arcs -->
+    <path d="M80,-40 Q120,0 80,40" fill="none" stroke="#6c5ce7" stroke-width="12" stroke-linecap="round" opacity="0.9"/>
+    <path d="M100,-65 Q155,0 100,65" fill="none" stroke="#7f70f0" stroke-width="10" stroke-linecap="round" opacity="0.7"/>
+    <path d="M120,-90 Q190,0 120,90" fill="none" stroke="#9b8ff5" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <!-- Speaker body -->
+    <rect x="-60" y="-35" width="50" height="70" rx="4" fill="#6c5ce7"/>
+    <polygon points="-10,-35 40,-75 40,75 -10,35" fill="#6c5ce7"/>
+    <!-- Inner glow -->
+    <circle cx="-35" cy="0" r="12" fill="#9b8ff5" opacity="0.6"/>
+  </g>
+  <!-- Text -->
+  <text x="256" y="460" text-anchor="middle" font-family="system-ui,sans-serif" font-size="56" font-weight="700" fill="#e8e8f0" letter-spacing="4">BASS STUDIO</text>
+</svg>

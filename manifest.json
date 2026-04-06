@@ -1,13 +1,17 @@
 {
   "name": "Bass Studio Pro",
   "short_name": "BassStudio",
-  "description": "Offline browser music player with EQ and visualizers",
-  "start_url": "/",
+  "description": "Offline browser music player with EQ, visualizers, and beat-synced effects",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
+  "categories": ["music", "entertainment"],
   "icons": [
-    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
