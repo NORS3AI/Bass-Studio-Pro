@@ -1271,15 +1271,135 @@ html, body {
 .update-banner button:hover { background: rgba(255,255,255,0.35); }
 @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
-/* ---------- Focus / Accessibility ---------- */
+/* ---------- Focus / Accessibility (Phase 11) ---------- */
+
+/* Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip-to-content link (11.3) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip-link:focus {
+  top: 8px;
+}
+
+/* 11.4 — Focus indicators on all interactive controls */
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+button:focus-visible, .icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.3);
+}
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+select:focus-visible, input[type="search"]:focus-visible, input[type="number"]:focus-visible,
+input[type="color"]:focus-visible, input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.25);
+}
 
+/* 11.5 — High contrast mode */
+@media (prefers-contrast: more) {
+  :root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-panel: #111111;
+    --bg-hover: #222222;
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --border: #666666;
+    --shadow: rgba(0, 0, 0, 0.8);
+  }
+  button, .icon-btn, .btn-small {
+    border: 1px solid var(--text-secondary) !important;
+  }
+  select, input[type="search"], input[type="number"] {
+    border: 2px solid var(--text-secondary) !important;
+  }
+  :focus-visible {
+    outline-width: 3px;
+    outline-color: #ffffff;
+  }
+  .track-list li.active {
+    border-left: 4px solid var(--accent);
+  }
+}
+
+/* 11.6 — Reduced motion: disable animations + visualizer */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+  .visualizer-overlay canvas {
+    display: none;
+  }
+  .visualizer-overlay::after {
+    content: "Visualizer paused (reduced motion enabled)";
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+  }
+}
+
+/* 11.7 — Keyboard shortcuts modal */
+.shortcuts-modal {
+  max-width: 440px;
+}
+.shortcuts-body {
+  padding: 8px 16px 16px;
+}
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.shortcuts-table th {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.shortcuts-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
+  font-size: 0.9rem;
+}
+.shortcuts-table kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.85em;
+  min-width: 24px;
+  text-align: center;
 }

@@ -18,7 +18,8 @@
   <!-- ============================================ -->
   <!-- TOP BAR                                      -->
   <!-- ============================================ -->
-  <header id="top-bar">
+  <a href="#now-playing-bar" class="skip-link">Skip to player controls</a>
+  <header id="top-bar" role="banner">
     <div class="top-bar-left">
       <h1 class="app-title">Bass Studio Pro</h1>
     </div>
@@ -45,7 +46,7 @@
   <!-- ============================================ -->
   <!-- MAIN CONTENT AREA                            -->
   <!-- ============================================ -->
-  <main id="app">
+  <main id="app" role="main">
 
     <!-- Hidden file inputs (used by top bar buttons) -->
     <input type="file" id="file-input" multiple accept="audio/*,.mp3,.aac,.m4a,.wav,.flac,.ogg,.webm,.aiff,.opus,audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/flac,audio/ogg,audio/webm,audio/aiff" hidden>
@@ -273,7 +274,10 @@
   <!-- ============================================ -->
   <!-- NOW PLAYING BAR (bottom)                     -->
   <!-- ============================================ -->
-  <footer id="now-playing-bar">
+  <!-- Screen reader live announcements (11.2) -->
+  <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <footer id="now-playing-bar" role="contentinfo">
     <div class="now-playing-info">
       <img id="album-art" alt="Album art" class="album-art-thumb" hidden>
       <div class="track-meta">
@@ -284,7 +288,7 @@
       <button id="btn-np-expand" class="icon-btn np-expand-btn" aria-label="Expand player" title="Expand">&#x25b2;</button>
     </div>
 
-    <div class="playback-controls">
+    <div class="playback-controls" role="group" aria-label="Playback controls">
       <button id="btn-shuffle" class="icon-btn" aria-label="Shuffle">&#x1f500;</button>
       <button id="btn-prev" class="icon-btn" aria-label="Previous">&#x23ee;</button>
       <button id="btn-play" class="icon-btn icon-btn-lg" aria-label="Play">&#x25b6;</button>
@@ -303,17 +307,51 @@
       <button id="btn-ab-loop" class="icon-btn ab-btn" aria-label="A-B loop" title="A-B loop (press L)">A-B</button>
     </div>
 
-    <div class="secondary-controls">
+    <div class="secondary-controls" role="group" aria-label="Secondary controls">
       <button id="btn-eq-toggle" class="icon-btn" aria-label="Equalizer">EQ</button>
       <button id="btn-viz-toggle" class="icon-btn" aria-label="Visualizer">VIZ</button>
       <button id="btn-pip" class="icon-btn hidden" aria-label="Picture in Picture" title="Picture in Picture">PiP</button>
-      <button id="btn-speed" class="icon-btn" aria-label="Playback speed">1x</button>
+      <button id="btn-speed" class="icon-btn" aria-label="Playback speed: 1x">1x</button>
       <div class="volume-control">
         <button id="btn-mute" class="icon-btn" aria-label="Mute">&#x1f50a;</button>
         <input type="range" id="volume-slider" min="0" max="100" value="80" aria-label="Volume">
       </div>
     </div>
   </footer>
+
+  <!-- KEYBOARD SHORTCUTS HELP (11.7) -->
+  <div id="shortcuts-modal" class="modal-overlay hidden" role="dialog" aria-label="Keyboard Shortcuts" aria-modal="true">
+    <div class="modal-container shortcuts-modal">
+      <div class="modal-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button id="btn-shortcuts-close" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body shortcuts-body">
+        <table class="shortcuts-table" role="presentation">
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Space</kbd></td><td>Play / Pause</td></tr>
+            <tr><td><kbd>&larr;</kbd></td><td>Seek back 5s</td></tr>
+            <tr><td><kbd>&rarr;</kbd></td><td>Seek forward 5s</td></tr>
+            <tr><td><kbd>Shift+&larr;</kbd></td><td>Previous track</td></tr>
+            <tr><td><kbd>Shift+&rarr;</kbd></td><td>Next track</td></tr>
+            <tr><td><kbd>&uarr;</kbd></td><td>Volume up</td></tr>
+            <tr><td><kbd>&darr;</kbd></td><td>Volume down</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Mute / Unmute</td></tr>
+            <tr><td><kbd>S</kbd></td><td>Toggle shuffle</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Cycle repeat mode</td></tr>
+            <tr><td><kbd>F</kbd></td><td>Toggle visualizer</td></tr>
+            <tr><td><kbd>E</kbd></td><td>Toggle equalizer</td></tr>
+            <tr><td><kbd>L</kbd></td><td>Set A-B loop point</td></tr>
+            <tr><td><kbd>/</kbd></td><td>Focus search bar</td></tr>
+            <tr><td><kbd>1</kbd>&ndash;<kbd>6</kbd></td><td>Switch visualizer mode</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close overlay / modal</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <!-- ============================================ -->
   <!-- SCRIPTS                                      -->

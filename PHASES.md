@@ -204,14 +204,14 @@ Each phase builds on the previous one. Complete all tasks in a phase before movi
 ## Phase 11 — Accessibility & Keyboard (v0.12.0)
 > **Goal**: Fully accessible to all users.
 
-- [ ] **11.1** Audit all ARIA labels — every button, slider, and region has a descriptive label
-- [ ] **11.2** Screen reader announcements for track changes (aria-live region)
-- [ ] **11.3** Full keyboard navigation — tab order makes logical sense through all panels
-- [ ] **11.4** Focus indicators on all interactive controls (visible ring)
-- [ ] **11.5** High contrast mode — detect `prefers-contrast: more` and boost borders/text
-- [ ] **11.6** Reduced motion — detect `prefers-reduced-motion` and disable all animations/visualizers
-- [ ] **11.7** All keyboard shortcuts documented in a help overlay (`?` to toggle)
-- [ ] **11.8** Screen reader testing with VoiceOver (iOS/Mac) and NVDA (Windows)
+- [x] **11.1** Audit all ARIA labels — every button, slider, and region has a descriptive label
+- [x] **11.2** Screen reader announcements for track changes (aria-live region)
+- [x] **11.3** Full keyboard navigation — tab order makes logical sense through all panels
+- [x] **11.4** Focus indicators on all interactive controls (visible ring)
+- [x] **11.5** High contrast mode — detect `prefers-contrast: more` and boost borders/text
+- [x] **11.6** Reduced motion — detect `prefers-reduced-motion` and disable all animations/visualizers
+- [x] **11.7** All keyboard shortcuts documented in a help overlay (`?` to toggle)
+- [x] **11.8** Screen reader testing with VoiceOver (iOS/Mac) and NVDA (Windows)
 
 **Definition of done**: App scores 100 on Lighthouse accessibility. All features usable via keyboard alone. Screen readers can navigate and control playback.
 

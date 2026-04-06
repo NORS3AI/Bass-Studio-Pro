@@ -2,6 +2,38 @@
 
 ---
 
+## v0.14.0 — 2026-04-06
+
+### Phase 11: Accessibility & Keyboard
+
+**ARIA & Screen Reader (11.1, 11.2):**
+- Audited and expanded ARIA labels on all buttons, sliders, and regions — dynamic labels for play/pause, shuffle, repeat, mute, and speed
+- Added `aria-live` region that announces track changes to screen readers ("Now playing: Title by Artist")
+- Added `role` attributes to header, main, footer, playback controls, and secondary controls
+
+**Keyboard Navigation (11.3, 11.7):**
+- Added skip-to-content link ("Skip to player controls") — visible on focus
+- Focus trapping in all modals (Settings, Patch Notes, Shortcuts) — Tab/Shift+Tab stays within
+- Keyboard shortcuts help overlay — press `?` to toggle, lists all shortcuts in a clean table
+- Logical tab order through all panels
+
+**Focus Indicators (11.4):**
+- Enhanced `:focus-visible` styles — accent-colored ring with box-shadow glow on buttons, selects, inputs
+- Range inputs get wider outline offset for visibility
+
+**High Contrast (11.5):**
+- Added `@media (prefers-contrast: more)` — pure black background, white text, visible borders on all controls, thicker focus outlines
+
+**Reduced Motion (11.6):**
+- Enhanced `@media (prefers-reduced-motion: reduce)` — all animations/transitions disabled
+- Visualizer canvas hidden with explanatory message; visualizer rendering skipped entirely
+- Marquee title animation already respected (pre-existing)
+
+**Screen Reader Testing (11.8):**
+- Verified ARIA tree structure: landmark roles, live regions, interactive labels, modal semantics
+
+---
+
 ## v0.13.1 — 2026-04-06
 
 ### Phase 10 Audit Fixes

@@ -59,6 +59,8 @@
   const vizOverlay     = $('#visualizer-overlay');
   const vizModeLabel   = $('#viz-mode-label');
   const contextMenu    = $('#track-context-menu');
+  const srAnnouncer    = $('#sr-announcer');
+  const shortcutsModal = $('#shortcuts-modal');
 
   albumArt.style.display = 'none';
   albumArt.removeAttribute('src');
@@ -534,6 +536,14 @@
     });
   }
 
+  // Screen reader announcement helper (11.2)
+  function announce(message) {
+    if (srAnnouncer) {
+      srAnnouncer.textContent = '';
+      requestAnimationFrame(() => { srAnnouncer.textContent = message; });
+    }
+  }
+
   function updateNowPlayingUI(track) {
     setMarqueeTitle(track.title);
     trackArtist.textContent = track.artist;
@@ -545,6 +555,8 @@
     albumArt.style.display = '';
     albumArt.removeAttribute('hidden');
     btnFavorite.innerHTML = Playlist.isFavorite(track.id) ? '&#x2605;' : '&#x2606;';
+    // Screen reader: announce track change (11.2)
+    announce(`Now playing: ${track.title} by ${track.artist}`);
     renderCurrentTracks();
   }
 
@@ -658,6 +670,7 @@
 
   Player.on('statechange', (state) => {
     btnPlay.innerHTML = state === 'playing' ? '&#x23f8;' : '&#x25b6;';
+    btnPlay.setAttribute('aria-label', state === 'playing' ? 'Pause' : 'Play');
   });
 
   // --- A-B Loop (7.6, 7.7, 7.8) ---
@@ -801,6 +814,7 @@
 
   Player.on('mutechange', (muted) => {
     btnMute.innerHTML = muted ? '&#x1f507;' : '&#x1f50a;';
+    btnMute.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
   });
 
   const speeds = [0.5, 0.75, 1, 1.25, 1.5, 2];
@@ -809,12 +823,18 @@
     speedIdx = (speedIdx + 1) % speeds.length;
     Player.setSpeed(speeds[speedIdx]);
     btnSpeed.textContent = speeds[speedIdx] + 'x';
+    btnSpeed.setAttribute('aria-label', 'Playback speed: ' + speeds[speedIdx] + 'x');
   });
 
-  Playlist.on('shufflechanged', (on) => btnShuffle.classList.toggle('active', on));
+  Playlist.on('shufflechanged', (on) => {
+    btnShuffle.classList.toggle('active', on);
+    btnShuffle.setAttribute('aria-label', on ? 'Shuffle: on' : 'Shuffle: off');
+    btnShuffle.setAttribute('aria-pressed', String(on));
+  });
   Playlist.on('repeatchanged', (mode) => {
     btnRepeat.classList.toggle('active', mode !== 'off');
     btnRepeat.title = `Repeat: ${mode}`;
+    btnRepeat.setAttribute('aria-label', `Repeat: ${mode}`);
   });
 
   // ============================================
@@ -860,6 +880,17 @@
     if (e.target === patchModal) patchModal.classList.add('hidden');
   });
 
+  // Keyboard Shortcuts modal (11.7)
+  function toggleShortcutsModal() {
+    shortcutsModal.classList.toggle('hidden');
+  }
+  $('#btn-shortcuts-close').addEventListener('click', () => {
+    shortcutsModal.classList.add('hidden');
+  });
+  shortcutsModal.addEventListener('click', (e) => {
+    if (e.target === shortcutsModal) shortcutsModal.classList.add('hidden');
+  });
+
   // ============================================
   // VISUALIZER
   // ============================================
@@ -877,9 +908,14 @@
     if (vizIdleTimer) { clearTimeout(vizIdleTimer); vizIdleTimer = null; }
   }
 
+  // Check reduced motion preference (11.6)
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
   function openVisualizer() {
     vizOverlay.classList.remove('hidden');
-    Visualizer.start();
+    if (!prefersReducedMotion.matches) {
+      Visualizer.start();
+    }
     vizModeLabel.textContent = Visualizer.getCurrentMode().name;
     showVizControls();
   }
@@ -1393,8 +1429,10 @@
       case 'f': case 'F': toggleVisualizer(); break;
       case 'e': case 'E': togglePanel(eqSection); break;
       case 'l': case 'L': cycleABLoop(); break;
+      case '?': toggleShortcutsModal(); break;
       case 'Escape':
-        if (!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
+        if (!shortcutsModal.classList.contains('hidden')) shortcutsModal.classList.add('hidden');
+        else if (!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
         else if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
         else if (!vizOverlay.classList.contains('hidden')) closeVisualizer();
         contextMenu.classList.add('hidden');
@@ -1875,6 +1913,25 @@
     const s = Math.floor(sec % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
+
+  // Focus trap for modals (11.3)
+  function trapFocus(modal) {
+    modal.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+  }
+  trapFocus(settingsModal);
+  trapFocus(patchModal);
+  trapFocus(shortcutsModal);
 
   function escapeHTML(str) {
     const div = document.createElement('div');
