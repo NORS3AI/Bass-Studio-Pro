@@ -857,38 +857,45 @@
 
   btnEqToggle.addEventListener('click', () => togglePanel(eqSection));
 
+  // Modal open/close helpers with focus restoration (11.3)
+  let lastFocusedElement = null;
+
+  function openModal(modal) {
+    lastFocusedElement = document.activeElement;
+    modal.classList.remove('hidden');
+    const firstFocusable = modal.querySelector('button, [href], input, select, textarea');
+    if (firstFocusable) firstFocusable.focus();
+  }
+
+  function closeModal(modal) {
+    modal.classList.add('hidden');
+    if (lastFocusedElement) { lastFocusedElement.focus(); lastFocusedElement = null; }
+  }
+
   // Settings — modal popup
-  btnSettings.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-  });
-  $('#btn-settings-close').addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-  });
+  btnSettings.addEventListener('click', () => openModal(settingsModal));
+  $('#btn-settings-close').addEventListener('click', () => closeModal(settingsModal));
   settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) settingsModal.classList.add('hidden');
+    if (e.target === settingsModal) closeModal(settingsModal);
   });
 
   // Patch Notes — modal popup
   btnPatchNotes.addEventListener('click', () => {
-    patchModal.classList.remove('hidden');
+    openModal(patchModal);
     PatchNotes.render($('#patch-notes-content'));
   });
-  $('#btn-patch-close').addEventListener('click', () => {
-    patchModal.classList.add('hidden');
-  });
+  $('#btn-patch-close').addEventListener('click', () => closeModal(patchModal));
   patchModal.addEventListener('click', (e) => {
-    if (e.target === patchModal) patchModal.classList.add('hidden');
+    if (e.target === patchModal) closeModal(patchModal);
   });
 
   // Keyboard Shortcuts modal (11.7)
   function toggleShortcutsModal() {
-    shortcutsModal.classList.toggle('hidden');
+    shortcutsModal.classList.contains('hidden') ? openModal(shortcutsModal) : closeModal(shortcutsModal);
   }
-  $('#btn-shortcuts-close').addEventListener('click', () => {
-    shortcutsModal.classList.add('hidden');
-  });
+  $('#btn-shortcuts-close').addEventListener('click', () => closeModal(shortcutsModal));
   shortcutsModal.addEventListener('click', (e) => {
-    if (e.target === shortcutsModal) shortcutsModal.classList.add('hidden');
+    if (e.target === shortcutsModal) closeModal(shortcutsModal);
   });
 
   // ============================================
@@ -1431,9 +1438,9 @@
       case 'l': case 'L': cycleABLoop(); break;
       case '?': toggleShortcutsModal(); break;
       case 'Escape':
-        if (!shortcutsModal.classList.contains('hidden')) shortcutsModal.classList.add('hidden');
-        else if (!settingsModal.classList.contains('hidden')) settingsModal.classList.add('hidden');
-        else if (!patchModal.classList.contains('hidden')) patchModal.classList.add('hidden');
+        if (!shortcutsModal.classList.contains('hidden')) closeModal(shortcutsModal);
+        else if (!settingsModal.classList.contains('hidden')) closeModal(settingsModal);
+        else if (!patchModal.classList.contains('hidden')) closeModal(patchModal);
         else if (!vizOverlay.classList.contains('hidden')) closeVisualizer();
         contextMenu.classList.add('hidden');
         break;
